@@ -11,6 +11,8 @@ return [
     |
     */
 
+    'project_start_date' => env('NEXUS_PROJECT_START_DATE', '2026-05-01'),
+
     'mail_to' => env('NEXUS_MAIL_TO', 'admin@example.com'),
 
     'providers' => [
