@@ -1,0 +1,14 @@
+searches:
+  - id: tomato_instance_segmentation
+    label: "Tomato Instance Segmentation"
+    query: "tomato AND (\"instance segmentation\" OR Mask R-CNN OR YOLOv8-seg)"
+    providers: [openalex, arxiv, semantic_scholar]
+    limit: 50
+    year_from: 2020
+
+  - id: agricultural_annotation_scarcity
+    label: "Annotation Scarcity in Agriculture"
+    query: "(\"annotation scarcity\" OR \"few-shot\" OR \"semi-supervised\") AND (agriculture OR farming OR greenhouse)"
+    providers: [openalex, semantic_scholar]
+    limit: 50
+    year_from: 2020
