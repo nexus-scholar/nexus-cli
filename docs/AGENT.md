@@ -15,10 +15,11 @@ The wiki is the deliverable. The CLI commands are the tools to build it.
 
 ## Reading Order
 
-1. `docs/architecture.md`   — system design, folder structure
-2. `docs/commands.md`       — Artisan command specs (build these)
-3. `docs/wiki-schema.md`    — wiki format and conventions
-4. `docs/data-sources.md`   — file paths and naming rules
+1. `docs/agent-notes.md`    — current progress, bugs, and context
+2. `docs/architecture.md`   — system design, folder structure
+3. `docs/commands.md`       — Artisan command specs (build these)
+4. `docs/wiki-schema.md`    — wiki format and conventions
+5. `docs/data-sources.md`   — file paths and naming rules
 
 ## Tech Stack
 
