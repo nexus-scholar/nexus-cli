@@ -7,6 +7,7 @@ use Symfony\Component\Yaml\Yaml;
 use Illuminate\Support\Facades\File;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Application\UseCase\SearchAcrossProviders;
+use Nexus\Search\Application\Dto\ScholarlyWorkDto;
 use Nexus\Search\Domain\ScholarlyWork;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\warning;
@@ -34,7 +35,7 @@ class NexusSearch extends Command
     public function handle(SearchAcrossProvidersHandler $handler)
     {
         $queriesPath = resource_path('queries/thesis-queries.yml');
-        
+
         if (!File::exists($queriesPath)) {
             error("Queries file not found at: {$queriesPath}");
             return self::FAILURE;
@@ -91,8 +92,11 @@ class NexusSearch extends Command
             $runData = [];
             foreach ($result->corpus->all() as $work) {
                 $workData = $this->mapWorkToArray($work);
+                $workData['query_id'] = $search['id'] ?? null;
+                $workData['query_metadata'] = $search['metadata'] ?? [];
                 $runData[] = $workData;
-                $globalCorpusData[$workData['id']] = $workData; // Use primary id as key for global dedup
+                $primaryKey = $work->primaryId()?->toString() ?? uniqid('work_');
+                $globalCorpusData[$primaryKey] = $workData;
             }
 
             $runFile = "{$runsDir}/{$search['id']}_{$timestamp}.json";
@@ -128,23 +132,6 @@ class NexusSearch extends Command
 
     private function mapWorkToArray(ScholarlyWork $work): array
     {
-        $primaryIdObj = $work->primaryId();
-        $idStr = $primaryIdObj ? $primaryIdObj->namespace->value . ':' . $primaryIdObj->value : uniqid('work_');
-        
-        $authors = [];
-        foreach ($work->authors()->all() as $author) {
-            $authors[] = $author->fullName();
-        }
-
-        return [
-            'id' => $idStr,
-            'title' => $work->title(),
-            'year' => $work->year(),
-            'authors' => $authors,
-            'abstract' => $work->abstract(),
-            'doi' => $work->ids()->findByNamespace(\Nexus\Shared\ValueObject\WorkIdNamespace::DOI)?->value,
-            'source' => $work->sourceProvider(),
-            'cited_by_count' => $work->citedByCount(),
-        ];
+        return ScholarlyWorkDto::fromDomain($work);
     }
 }

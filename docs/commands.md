@@ -82,3 +82,23 @@ to the requested format (bibtex, csv, ris).
 Output: storage/exports/{format}_{timestamp}.{ext}
 
 Build this only after nexus:ingest is working.
+
+---
+
+## nexus:screen  (BUILD)
+
+Signature: nexus:screen {run? : path to run JSON, defaults to latest} {--criteria= : path to criteria JSON}
+
+Screens run results using inclusion/exclusion criteria and writes:
+- storage/screens/{run_id}.json
+
+---
+
+## nexus:fetch-pdfs  (BUILD)
+
+Signature: nexus:fetch-pdfs {screen? : path to screen JSON, defaults to latest}
+
+Fetches PDFs for included papers (OpenAlex) and saves:
+- storage/pdfs/{run_id}/{slug}.pdf
+- storage/pdfs/{run_id}/manifest.json
+

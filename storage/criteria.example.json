@@ -1,0 +1,20 @@
+{
+  "include": {
+    "keywords": [
+      "tomato",
+      "instance segmentation",
+      "weakly supervised",
+      "semi-supervised"
+    ],
+    "year_from": 2020,
+    "year_to": 2026
+  },
+  "exclude": {
+    "keywords": [
+      "review",
+      "survey",
+      "non-vision"
+    ]
+  }
+}
+
