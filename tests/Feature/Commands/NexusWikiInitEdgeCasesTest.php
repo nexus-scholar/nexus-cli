@@ -14,7 +14,9 @@ afterEach(function () {
 });
 
 test('preserves existing content in subdirectories', function () {
-    File::makeDirectory("{$this->basePath}/papers", 0755, true);
+    if (!File::isDirectory("{$this->basePath}/papers")) {
+        File::makeDirectory("{$this->basePath}/papers", 0755, true);
+    }
     $testPaper = "# Test Paper\nContent here";
     File::put("{$this->basePath}/papers/test-paper-2024.md", $testPaper);
 
@@ -114,8 +116,12 @@ test('log file date format is valid', function () {
 });
 
 test('handles complex existing tree', function () {
-    File::makeDirectory("{$this->basePath}/papers", 0755, true);
-    File::makeDirectory("{$this->basePath}/concepts", 0755, true);
+    if (!File::isDirectory("{$this->basePath}/papers")) {
+        File::makeDirectory("{$this->basePath}/papers", 0755, true);
+    }
+    if (!File::isDirectory("{$this->basePath}/concepts")) {
+        File::makeDirectory("{$this->basePath}/concepts", 0755, true);
+    }
     File::put("{$this->basePath}/papers/paper1.md", '# Paper 1');
     File::put("{$this->basePath}/papers/paper2.md", '# Paper 2');
     File::put("{$this->basePath}/concepts/concept1.md", '# Concept 1');
@@ -201,7 +207,9 @@ test('gitkeep files have expected behavior', function () {
 });
 
 test('respects existing directory structure', function () {
-    File::makeDirectory("{$this->basePath}/papers", 0755, true);
+    if (!File::isDirectory("{$this->basePath}/papers")) {
+        File::makeDirectory("{$this->basePath}/papers", 0755, true);
+    }
 
     $this->artisan('nexus:wiki-init')->assertExitCode(0);
 

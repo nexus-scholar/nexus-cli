@@ -267,10 +267,15 @@ test('writes global deduped master when running all queries', function () {
     $expectedA = ScholarlyWorkDto::fromDomain($workA);
     $expectedB = ScholarlyWorkDto::fromDomain($workB);
 
-    expect($globalPayload)->toContain($expectedA);
-    expect($globalPayload)->toContain($expectedB);
+    $matchA = array_values(array_filter($globalPayload, fn ($item) => ($item['title'] ?? null) === 'Paper A'));
+    $matchB = array_values(array_filter($globalPayload, fn ($item) => ($item['title'] ?? null) === 'Paper B'));
 
-    expect($globalPayload[0])->toHaveKeys(['query_id', 'query_metadata']);
+    expect($matchA)->toHaveCount(1);
+    expect($matchB)->toHaveCount(1);
+    expect($matchA[0])->toMatchArray($expectedA);
+    expect($matchB[0])->toMatchArray($expectedB);
+    expect($matchA[0])->toHaveKeys(['query_id', 'query_metadata']);
+    expect($matchB[0])->toHaveKeys(['query_id', 'query_metadata']);
 
     $latestPayload = json_decode(File::get($latestPointer), true);
     expect($latestPayload['file'])->toBe('storage/runs/all_20260505_000738.json');

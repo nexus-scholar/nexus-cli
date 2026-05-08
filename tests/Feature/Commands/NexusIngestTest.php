@@ -130,14 +130,20 @@ test('skips existing paper pages without overwriting', function () {
     writeRunFile($runFile, $payload);
     $this->createdFiles[] = $runFile;
 
+    $logBefore = File::exists($this->logFile) ? File::get($this->logFile) : null;
+
     $this->artisan('nexus:ingest', ['file' => $runFile])
         ->assertExitCode(0);
 
     $content = File::get($paperPath);
     expect($content)->toBe('existing content');
 
-    $log = File::exists($this->logFile) ? File::get($this->logFile) : '';
-    expect($log)->not->toContain('## [2026-05-05] ingest | Paper A');
+    $logAfter = File::exists($this->logFile) ? File::get($this->logFile) : '';
+    if ($logBefore !== null) {
+        expect($logAfter)->toBe($logBefore);
+    } else {
+        expect($logAfter)->not->toContain('## [2026-05-05] ingest | Paper A');
+    }
 });
 
 test('uses latest.json when file argument is missing', function () {
