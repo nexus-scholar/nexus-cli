@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Symfony\Component\Yaml\Yaml;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Application\UseCase\SearchAcrossProviders;
 use Nexus\Search\Application\Dto\ScholarlyWorkDto;
@@ -87,7 +88,8 @@ class NexusSearch extends Command
 
             $result = $handler->handle($command);
 
-            $this->line(sprintf('  Raw: <comment>%d</comment>  →  Unique: <comment>%d</comment>', $result->totalRaw, $result->corpus->count()));
+            $this->renderProviderStats($result->providerStats);
+            $this->renderDedupSummary($result->totalRaw, $result->corpus->count());
 
             $runData = [];
             foreach ($result->corpus->all() as $work) {
@@ -128,6 +130,54 @@ class NexusSearch extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    private function renderProviderStats(array $providerStats): void
+    {
+        if ($providerStats === []) {
+            $this->line('  Providers: none (all skipped or disabled).');
+            return;
+        }
+
+        $rows = [];
+        $failures = [];
+        foreach ($providerStats as $stat) {
+            $message = $stat->skipReason ?? '—';
+            $rows[] = [
+                $stat->alias,
+                $stat->resultCount,
+                $stat->latencyMs . 'ms',
+                $stat->skipReason === null ? 'OK' : 'Failed',
+                Str::limit($message, 80),
+            ];
+
+            if ($stat->skipReason !== null) {
+                $failures[] = ['provider' => $stat->alias, 'message' => $message];
+            }
+        }
+
+        $this->table(['Provider', 'Results', 'Latency', 'Status', 'Message'], $rows);
+
+        if ($failures !== []) {
+            $this->line('<fg=yellow>Provider failures:</>');
+            foreach ($failures as $failure) {
+                $this->line(sprintf('  - <fg=red>%s</>: %s', $failure['provider'], $failure['message']));
+            }
+        }
+    }
+
+    private function renderDedupSummary(int $totalRaw, int $uniqueCount): void
+    {
+        $duplicates = max(0, $totalRaw - $uniqueCount);
+        $dedupRate = $totalRaw > 0 ? round(($uniqueCount / $totalRaw) * 100, 1) : 0.0;
+
+        $this->line(sprintf(
+            '  Raw: <comment>%d</comment>  →  Unique: <comment>%d</comment>  (dupes: %d, %s%% kept)',
+            $totalRaw,
+            $uniqueCount,
+            $duplicates,
+            $dedupRate
+        ));
     }
 
     private function mapWorkToArray(ScholarlyWork $work): array
