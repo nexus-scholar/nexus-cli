@@ -1,280 +1,263 @@
-version: 3
-project: tomatomap_slr
+version: 4
+project: image_texture_slr
 
 # ===========================================================================
-# v3 DESIGN PRINCIPLES (Optimized & Model-Compliant)
+# v4 DESIGN PRINCIPLES (Texture & Image Processing, 2021–2026)
 # ---------------------------------------------------------------------------
 # 1. Total OR terms per query strictly <= 6 (well below OpenAlex 10-term cap)
-# 2. Consolidated synonymous concepts to reduce API calls
-# 3. No include_any / exclude_any on queries — screener heuristics handle it
-# 4. max-results set to 50 directly in the query model
-# 5. Schema directly matches the Pydantic Query BaseModel
+# 2. Separate "classical" texture/image-processing track from deep-learning track
+# 3. Explicit 2021+ filter to focus on recent contributions
+# 4. No include_any / exclude_any — screener heuristics handle finer logic
+# 5. Schema matches existing Pydantic Query BaseModel used in tomatomap_slr
 # ===========================================================================
 
 searches:
-  # =========================================================================
-  # Track A: TomatoMAP & agricultural label-efficiency evidence
-  # =========================================================================
-
-  - id: AG_SSL01
-    label: AG_SSL01
-    query: >
-      "semi-supervised" AND "instance segmentation"
-      AND (tomato OR greenhouse OR crop OR agriculture OR "plant phenotyping")
-    year_from: 2023
-    limit: 50
-    metadata:
-      theme: semi_supervised_segmentation
-      priority: high
-      include_title_abstract: >
-        Include if the study uses semi-supervised learning (e.g., pseudo-labels, consistency loss,
-        teacher–student, self-training) for instance segmentation on plant, crop, tomato, greenhouse,
-        or phenotyping images, or clearly targets agricultural vision or plant phenotyping.
-      exclude_title_abstract: >
-        Exclude if the task is not vision (e.g., NLP, time series), or only covers classification or
-        detection with no segmentation, or if the domain is unrelated to plants/agriculture (e.g.,
-        generic natural images, medical imaging, autonomous driving) without any plant or crop focus.
-
-  - id: AG_SSL02
-    label: AG_SSL02
-    query: >
-      "semi-supervised" AND (weed OR weeds OR crop OR agriculture OR phenotyping)
-      AND (segmentation OR detection)
-    year_from: 2023
-    limit: 50
-    metadata:
-      theme: semi_supervised_segmentation
-      priority: high
-      include_title_abstract: >
-        Include if the paper is about semi-supervised segmentation or detection for weeds, crops,
-        or agricultural/phenotyping imagery, explicitly aiming to reduce annotation effort or use
-        unlabeled data in farm, field, or greenhouse scenarios.
-      exclude_title_abstract: >
-        Exclude if semi-supervised learning is applied outside agricultural or plant-related domains,
-        or if the task is purely classification or regression, or if “weed” refers to non-agricultural
-        contexts (e.g., drug use, social science).
-
-  - id: AG_LE01
-    label: AG_LE01
-    query: >
-      ("label-efficient" OR "annotation-efficient" OR "label efficient")
-      AND (segmentation OR detection)
-      AND (tomato OR crop OR agriculture)
-    year_from: 2023
-    limit: 50
-    metadata:
-      theme: label_efficient_learning
-      priority: high
-      include_title_abstract: >
-        Include if the work focuses on label-efficient or annotation-efficient segmentation or detection
-        in tomato, crop, or agricultural imagery, e.g., reducing labeled samples, using weak labels,
-        or exploiting unlabeled images.
-      exclude_title_abstract: >
-        Exclude if label efficiency relates only to non-vision tasks, or to yield prediction or
-        tabular models without segmentation/detection, or if agriculture is only mentioned as a
-        motivational example without actual agricultural image experiments.
-
-  - id: AG_TOM01
-    label: AG_TOM01
-    query: >
-      tomato AND "instance segmentation"
-      AND (greenhouse OR phenotyping OR "fruit detection" OR "leaf disease" OR "plant disease")
-    year_from: 2023
-    limit: 50
-    metadata:
-      theme: tomato_instance_segmentation
-      priority: high
-      include_title_abstract: >
-        Include if the study performs instance segmentation on tomato plants, fruits, leaves, or
-        diseases in greenhouse, field, or phenotyping setups, regardless of the specific model
-        (e.g., YOLOv8-Seg, Mask R-CNN).
-      exclude_title_abstract: >
-        Exclude if tomato appears only as a textual example without actual tomato image experiments,
-        or if the task is only detection or classification with no instance masks, or if the focus
-        is on supply chain, economics, or non-vision tomato topics.
-
-  - id: AG_TMAP01
-    label: AG_TMAP01
-    query: >
-      ("TomatoMAP" OR "multi-angle multi-pose")
-      AND (tomato OR phenotyping OR greenhouse)
-    year_from: 2023
-    limit: 50
-    metadata:
-      theme: tomato_benchmarks
-      priority: high
-      include_title_abstract: >
-        Include if the paper presents, analyzes, or uses TomatoMAP or a similar multi-angle,
-        multi-pose tomato dataset for classification, detection, or segmentation, or clearly
-        discusses multi-view tomato phenotyping benchmarks.
-      exclude_title_abstract: >
-        Exclude if "multi-angle" or "multi-pose" is used in a non-tomato context (e.g., human
-        pose estimation, generic object datasets) without any tomato or greenhouse phenotyping
-        component.
-
-  - id: AG_PHENO01
-    label: AG_PHENO01
-    query: >
-      "plant phenotyping" AND "instance segmentation"
-      AND (greenhouse OR "vertical farming" OR "high-throughput" OR "high throughput")
-    year_from: 2023
-    limit: 50
-    metadata:
-      theme: plant_phenotyping
-      priority: medium
-      include_title_abstract: >
-        Include if the paper uses instance segmentation for plant phenotyping in greenhouses,
-        vertical farming, or high-throughput platforms (e.g., segmenting leaves, heads, fruits),
-        especially when discussing label scarcity, annotation cost, or automation.
-      exclude_title_abstract: >
-        Exclude if phenotyping is done without segmentation (e.g., only trait prediction from
-        hand-crafted features), or if the study focuses solely on genomics or non-image-based
-        phenotyping.
-
-  - id: AG_SSL_SAM01
-    label: AG_SSL_SAM01
-    query: >
-      "semi-supervised" AND (SAM OR "Segment Anything")
-      AND (tomato OR plant OR crop OR agriculture)
-    year_from: 2023
-    limit: 50
-    metadata:
-      theme: foundation_models
-      priority: medium
-      include_title_abstract: >
-        Include if the study combines semi-supervised learning with SAM or Segment Anything for
-        plant, crop, or agricultural images, e.g., using SAM for pseudo-label masks or annotation
-        acceleration in agricultural segmentation/detection tasks.
-      exclude_title_abstract: >
-        Exclude if SAM is used only for generic datasets without any plant, crop, or agricultural
-        imagery, or if the method is fully supervised with no semi-supervised or label-efficient
-        component.
 
   # =========================================================================
-  # Track B: Transfer-method & general label-efficient segmentation
+  # Track T1: Core texture-analysis methods in image processing
   # =========================================================================
 
-  - id: TR_SSL01
-    label: TR_SSL01
+  - id: TX_CORE01
+    label: TX_CORE01
     query: >
-      "semi-supervised" AND "instance segmentation"
+      (texture OR "texture analysis")
+      AND ("image processing" OR "image analysis")
     year_from: 2023
-    limit: 50
+    limit: 100
     metadata:
-      theme: semi_supervised_segmentation
+      theme: core_texture_analysis
       priority: high
-      include_title_abstract: >
-        Include if the core contribution is a semi-supervised instance segmentation method (any
-        domain) that uses unlabeled images, pseudo-labeling, consistency regularization, or
-        teacher–student training and reports results on segmentation masks.
-      exclude_title_abstract: >
-        Exclude if semi-supervised learning is used only for classification or detection without
-        instance masks, or if “segmentation” refers to non-vision tasks (e.g., customer
-        segmentation, text segmentation).
+    include_title_abstract: >
+      Include if the main contribution is a texture-based method or framework in
+      image processing or image analysis, such as new texture descriptors,
+      pipelines, or surveys explicitly focused on texture (e.g., statistical,
+      structural, or model-based texture representations).
+    exclude_title_abstract: >
+      Exclude if “texture” is only used descriptively (e.g., “texture of the
+      surface”) without any explicit texture-analysis method, or if texture is a
+      minor side feature in a generic deep model with no dedicated texture module
+      or analysis.
 
-  - id: TR_SSL02
-    label: TR_SSL02
+  - id: TX_FEAT01
+    label: TX_FEAT01
     query: >
-      "semi-supervised" AND (segmentation OR detection)
-      AND (unlabeled OR "unlabeled data" OR "unlabelled data" OR "label scarcity")
+      ("Gabor filter" OR "Haralick" OR "co-occurrence matrix" OR "LBP" OR "local binary pattern")
+      AND ("image processing" OR "image analysis")
     year_from: 2023
-    limit: 50
+    limit: 100
     metadata:
-      theme: semi_supervised_segmentation
+      theme: classical_texture_features
       priority: high
-      include_title_abstract: >
-        Include if the paper explicitly addresses label scarcity or limited annotations for
-        segmentation or detection and proposes a semi-supervised method leveraging unlabeled
-        images, with clear experimental evaluation.
-      exclude_title_abstract: >
-        Exclude if unlabeled data or label scarcity is mentioned only in the introduction without
-        being a core methodological focus, or if the task is not computer vision (e.g., speech,
-        NLP) and no image-based segmentation/detection is involved.
+    include_title_abstract: >
+      Include if the study proposes, modifies, or systematically evaluates
+      classical texture descriptors such as Gabor filters, Haralick features,
+      gray-level co-occurrence matrices, or local binary patterns within image
+      processing pipelines (e.g., classification, segmentation, detection).
+    exclude_title_abstract: >
+      Exclude if the classical descriptor is only used as a trivial baseline
+      without analysis, or appears only in the related work without being part of
+      the proposed method or experimental evaluation.
 
-  - id: TR_SSL03
-    label: TR_SSL03
+  - id: TX_MULTI01
+    label: TX_MULTI01
     query: >
-      ("self-training" OR "self training" OR "teacher-student" OR "mean teacher")
-      AND (segmentation OR "instance segmentation")
+      (texture OR "texture analysis")
+      AND ("multiresolution" OR "multiscale" OR "wavelet" OR "shearlet")
     year_from: 2023
-    limit: 50
+    limit: 100
     metadata:
-      theme: semi_supervised_segmentation
+      theme: multiscale_texture
+      priority: medium
+    include_title_abstract: >
+      Include if the paper develops or evaluates multiresolution or multiscale
+      approaches for texture analysis (e.g., wavelet-based, shearlet-based, or
+      other scale-space models) in image processing tasks.
+    exclude_title_abstract: >
+      Exclude if multiscale or wavelet methods are used for general image
+      compression or denoising without explicit focus on texture modeling or
+      texture-based decision making.
+
+  # =========================================================================
+  # Track T2: Texture-aware deep learning and representation learning
+  # =========================================================================
+
+  - id: TX_DL01
+    label: TX_DL01
+    query: >
+      (texture OR "texture features")
+      AND ("convolutional neural network" OR CNN OR "deep learning")
+    year_from: 2023
+    limit: 100
+    metadata:
+      theme: texture_aware_deep_learning
       priority: high
-      include_title_abstract: >
-        Include if the study applies self-training, teacher–student, or mean-teacher-style
-        frameworks to segmentation or instance segmentation, using model predictions as
-        pseudo-labels or consistency targets.
-      exclude_title_abstract: >
-        Exclude if self-training is used solely for classification or detection with no
-        segmentation task, or if the teacher–student terminology refers to knowledge distillation
-        without any semi-supervised use of unlabeled data.
+    include_title_abstract: >
+      Include if the study explicitly incorporates texture modeling into a deep
+      learning architecture (e.g., texture-aware CNN layers, texture pooling,
+      texture attention), or analyzes how deep networks capture and use texture
+      features in image tasks.
+    exclude_title_abstract: >
+      Exclude if deep learning is used with no explicit reference to texture
+      modeling, or if “texture” is mentioned only as a qualitative description
+      of images without methodological impact.
 
-  - id: TR_LE01
-    label: TR_LE01
+  - id: TX_SSL01
+    label: TX_SSL01
     query: >
-      ("label-efficient" OR "annotation-efficient" OR "semi-weakly supervised" OR "weakly supervised")
-      AND "instance segmentation"
+      ("self-supervised" OR "contrastive learning" OR "representation learning")
+      AND (texture OR "image texture")
     year_from: 2023
-    limit: 50
+    limit: 100
     metadata:
-      theme: label_efficient_learning
+      theme: texture_representation_learning
       priority: medium
-      include_title_abstract: >
-        Include if the main goal is to perform instance segmentation with fewer or weaker labels
-        (e.g., box-level, image-level, sparsely labeled masks), or if the paper explicitly claims
-        label efficiency or annotation efficiency for instance segmentation.
-      exclude_title_abstract: >
-        Exclude if label efficiency is discussed but the experiments are only on classification,
-        detection, or semantic segmentation with no instance masks, or if the efficiency refers
-        only to runtime or memory instead of annotation cost.
+    include_title_abstract: >
+      Include if the paper uses self-supervised, contrastive, or general
+      representation learning methods explicitly to learn texture-sensitive
+      image features, or evaluates how such representations capture texture for
+      downstream tasks.
+    exclude_title_abstract: >
+      Exclude if the representation learning method is completely generic with no
+      focus on texture, or if texture is only mentioned among many visual
+      properties without dedicated analysis, experiments, or ablations.
 
-  - id: TR_ZS01
-    label: TR_ZS01
+  - id: TX_VIT01
+    label: TX_VIT01
     query: >
-      ("zero-shot" OR "zero shot") AND "instance segmentation"
-      AND (plant OR crop OR phenotyping OR agriculture)
+      (texture OR "texture analysis")
+      AND ("vision transformer" OR "ViT" OR "transformer-based")
     year_from: 2023
-    limit: 50
+    limit: 100
     metadata:
-      theme: plant_phenotyping
+      theme: texture_transformers
       priority: medium
-      include_title_abstract: >
-        Include if the paper performs zero-shot or training-free instance segmentation for plants,
-        crops, or phenotyping (e.g., Grounding DINO + SAM pipelines, prompt-based segmentation of
-        plants without target-specific labels).
-      exclude_title_abstract: >
-        Exclude if zero-shot instance segmentation is applied only to generic objects (e.g., COCO,
-        LVIS) with no plant or agricultural domain, or if zero-shot refers to recognition or
-        classification without segmentation masks.
+    include_title_abstract: >
+      Include if the work studies or designs transformer-based or ViT-style
+      architectures for texture modeling or texture-sensitive image tasks (e.g.,
+      fine-grained recognition driven by texture cues).
+    exclude_title_abstract: >
+      Exclude if transformers are used for general image classification or
+      segmentation without any dedicated focus on texture modeling, texture
+      descriptors, or texture-aware analysis.
 
-  - id: TR_FM01
-    label: TR_FM01
+  # =========================================================================
+  # Track T3: Texture in image segmentation, classification, and detection
+  # =========================================================================
+
+  - id: TX_SEG01
+    label: TX_SEG01
     query: >
-      ("Segment Anything" OR "SAM")
-      AND ("pseudo-label" OR "mask generation" OR "auto-label" OR "auto label")
+      (texture OR "texture features")
+      AND segmentation
     year_from: 2023
-    limit: 50
+    limit: 100
     metadata:
-      theme: foundation_models
-      priority: medium
-      include_title_abstract: >
-        Include if the study uses SAM or Segment Anything to generate pseudo-label masks or to
-        auto-label images for downstream training of segmentation or detection models, especially
-        in low-annotation or label-scarce settings.
-      exclude_title_abstract: >
-        Exclude if SAM is used only as a general-purpose annotation tool with no learning
-        pipeline, or if pseudo-labeling is applied only to classification tasks without any
-        segmentation or detection component.
+      theme: texture_segmentation
+      priority: high
+    include_title_abstract: >
+      Include if texture information is central to the segmentation method
+      (e.g., texture-based region growing, Markov random fields with texture
+      features, CNNs with explicit texture channels) or if the paper analyzes
+      texture cues for segmentation quality.
+    exclude_title_abstract: >
+      Exclude if segmentation is done purely by shape or intensity with no use
+      of texture descriptors or if the word “texture” only appears in qualitative
+      visual descriptions of results.
 
-# ===========================================================================
-# SEED PAPERS — must appear in at least one provider for recall validation
-# ---------------------------------------------------------------------------
-# Examples you may want these queries to capture:
-# - Semi-supervised weed and crop segmentation (SemiWeedNet)
-# - Semi-supervised weed detection frameworks
-# - Semi-/self-supervised wheat head instance segmentation (GLMask-style)
-# - Zero-shot instance segmentation for plant phenotyping in vertical farming
-# - Tomato YOLOv8-Seg and ACP-Tomato-Seg instance segmentation baselines
-# - TomatoMAP Scientific Data descriptor and associated benchmark papers
-# ===========================================================================
+  - id: TX_CLS01
+    label: TX_CLS01
+    query: >
+      (texture OR "texture classification")
+      AND (classification OR recognition)
+    year_from: 2023
+    limit: 100
+    metadata:
+      theme: texture_classification
+      priority: medium
+    include_title_abstract: >
+      Include if the main task is texture classification or recognition, or if
+      texture-based features are the primary input to a classifier for image or
+      region-level decisions.
+    exclude_title_abstract: >
+      Exclude if classification uses generic deep features with no explicit link
+      to texture, or if texture classification is a minor side experiment without
+      methodological contribution.
+
+  - id: TX_DET01
+    label: TX_DET01
+    query: >
+      (texture OR "surface pattern")
+      AND (detection OR "defect detection" OR "anomaly detection")
+    year_from: 2023
+    limit: 100
+    metadata:
+      theme: texture_based_detection
+      priority: medium
+    include_title_abstract: >
+      Include if detection or anomaly/defect detection is explicitly based on
+      texture or surface pattern analysis (e.g., industrial surface inspection,
+      fabric defects, material textures), using either classical or deep texture
+      descriptors.
+    exclude_title_abstract: >
+      Exclude if detection focuses solely on object shape, keypoints, or generic
+      semantic features with no explicit modeling of texture or surface patterns.
+
+  # =========================================================================
+  # Track T4: Application-focused texture and image-processing contributions
+  # =========================================================================
+
+  - id: TX_MED01
+    label: TX_MED01
+    query: >
+      (texture OR "radiomic texture" OR "texture features")
+      AND (medical OR radiology OR "medical imaging")
+    year_from: 2023
+    limit: 100
+    metadata:
+      theme: medical_texture_analysis
+      priority: medium
+    include_title_abstract: >
+      Include if texture-based image processing or radiomic texture features are
+      a central part of the medical imaging method (e.g., tumor characterization,
+      tissue classification, prognosis models using texture).
+    exclude_title_abstract: >
+      Exclude if medical imaging uses only generic CNN embeddings, shape, or
+      intensity statistics without explicit discussion or use of texture/radiomic
+      texture features.
+
+  - id: TX_IND01
+    label: TX_IND01
+    query: >
+      (texture OR "surface texture")
+      AND ("industrial inspection" OR manufacturing OR "quality control")
+    year_from: 2023
+    limit: 100
+    metadata:
+      theme: industrial_texture_inspection
+      priority: low
+    include_title_abstract: >
+      Include if image processing for industrial inspection or quality control
+      relies on texture or surface texture analysis (e.g., detecting scratches,
+      roughness, or regular pattern defects).
+    exclude_title_abstract: >
+      Exclude if inspection is primarily geometric or dimensional with no texture
+      features, or if images are only used for simple thresholding without any
+      texture modeling.
+
+  - id: TX_REMOT01
+    label: TX_REMOT01
+    query: >
+      (texture OR "texture features")
+      AND ("remote sensing" OR "satellite image" OR "SAR image")
+    year_from: 2023
+    limit: 100
+    metadata:
+      theme: remote_sensing_texture
+      priority: low
+    include_title_abstract: >
+      Include if texture analysis is central to remote sensing or SAR image
+      processing (e.g., land-use classification by texture, sea-ice texture
+      modeling, speckle texture descriptors).
+    exclude_title_abstract: >
+      Exclude if remote sensing uses only spectral indices or generic deep
+      features with no explicit role for texture descriptors or texture analysis.

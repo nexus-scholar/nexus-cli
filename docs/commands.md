@@ -19,6 +19,21 @@ Reads from:
 
 ---
 
+## nexus:run-stats  (BUILD)
+
+Signature: nexus:run-stats {run? : path to run JSON, defaults to latest}
+
+Shows quick stats for a run JSON:
+- total count
+- counts by provider
+- counts by query_id (if present)
+
+Reads from:
+- storage/runs/latest.json (default)
+- run file path (optional argument)
+
+---
+
 ## nexus:search  (BUILD)
 
 Signature: nexus:search {--id= : run specific query} {--all : run all queries}

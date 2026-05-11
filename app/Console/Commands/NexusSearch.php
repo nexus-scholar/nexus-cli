@@ -61,7 +61,7 @@ class NexusSearch extends Command
         if ($idOpt) {
             $searches = array_filter($searches, fn($q) => $q['id'] === $idOpt);
             if (empty($searches)) {
-                error("Query ID '{$idOpt}' not found in thesis-queries.yml");
+                error("Query ID '{$idOpt}' not found in thesis-queries-old-1.yml");
                 return self::FAILURE;
             }
         }
@@ -110,6 +110,7 @@ class NexusSearch extends Command
             $globalFile = "{$runsDir}/all_{$timestamp}.json";
             File::put($globalFile, json_encode(array_values($globalCorpusData), JSON_PRETTY_PRINT));
             $this->line("  Saved global deduped master to: {$globalFile}");
+            $this->line('  Note: all_*.json is deduplicated across all queries.');
 
             $latestPointer = "{$runsDir}/latest.json";
             $latestData = [

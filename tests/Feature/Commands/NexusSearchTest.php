@@ -18,7 +18,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
 use Symfony\Component\Yaml\Yaml;
 
 beforeEach(function () {
-    $this->queriesPath = resource_path('queries/thesis-queries.yml');
+    $this->queriesPath = resource_path('queries/thesis-queries-old-1.yml');
     $this->runsDir = storage_path('runs');
     $this->latestPointer = "{$this->runsDir}/latest.json";
 
