@@ -18,7 +18,7 @@ use Nexus\Shared\ValueObject\WorkIdSet;
 use Symfony\Component\Yaml\Yaml;
 
 beforeEach(function () {
-    $this->queriesPath = resource_path('queries/thesis-queries-old-1.yml');
+    $this->queriesPath = resource_path('queries/thesis-queries.yml');
     $this->runsDir = storage_path('runs');
     $this->latestPointer = "{$this->runsDir}/latest.json";
 
@@ -37,7 +37,7 @@ beforeEach(function () {
     }
 
     $this->createdProjectsTable = false;
-    if (!Schema::hasTable('projects')) {
+    if (! Schema::hasTable('projects')) {
         Schema::create('projects', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->timestamp('locked_at')->nullable();
@@ -67,7 +67,7 @@ afterEach(function () {
         $currentFiles = File::files($this->runsDir);
         foreach ($currentFiles as $file) {
             $path = $file->getPathname();
-            if (!in_array($path, $this->existingRunFiles, true)) {
+            if (! in_array($path, $this->existingRunFiles, true)) {
                 File::delete($path);
             }
         }
@@ -88,7 +88,8 @@ function writeQueriesFile(string $path, array $searches): void
 
 function bindAggregator(AggregatedResult|callable $resultFactory): void
 {
-    app()->instance(SearchAggregatorPort::class, new class($resultFactory) implements SearchAggregatorPort {
+    app()->instance(SearchAggregatorPort::class, new class($resultFactory) implements SearchAggregatorPort
+    {
         private $resultFactory;
 
         public function __construct($resultFactory)
@@ -172,7 +173,16 @@ test('writes per-query run and latest pointer using dto payloads', function () {
     Carbon::setTestNow('2026-05-05 00:07:38');
 
     writeQueriesFile($this->queriesPath, [
-        ['id' => 'tomato', 'label' => 'Tomato', 'query' => 'tomato segmentation', 'limit' => 10],
+        [
+            'id' => 'tomato',
+            'label' => 'Tomato',
+            'query' => 'tomato segmentation',
+            'limit' => 10,
+            'year_from' => 2020,
+            'year_to' => 2026,
+            'include_title_abstract' => 'Include tomato segmentation studies.',
+            'exclude_title_abstract' => 'Exclude unrelated reviews.',
+        ],
     ]);
 
     $work = makeWork(
@@ -206,6 +216,16 @@ test('writes per-query run and latest pointer using dto payloads', function () {
     $expected = ScholarlyWorkDto::fromDomain($work);
     expect($runPayload[0])->toMatchArray($expected);
     expect($runPayload[0])->toHaveKeys(['query_id', 'query_metadata']);
+    expect($runPayload[0]['query_metadata'])->toMatchArray([
+        'query_id' => 'tomato',
+        'label' => 'Tomato',
+        'query' => 'tomato segmentation',
+        'limit' => 10,
+        'year_from' => 2020,
+        'year_to' => 2026,
+        'include_title_abstract' => 'Include tomato segmentation studies.',
+        'exclude_title_abstract' => 'Exclude unrelated reviews.',
+    ]);
 
     $latestPayload = json_decode(File::get($latestPointer), true);
     expect($latestPayload['file'])->toBe('storage/runs/tomato_20260505_000738.json');
@@ -274,11 +294,12 @@ test('writes global deduped master when running all queries', function () {
     expect($matchB)->toHaveCount(1);
     expect($matchA[0])->toMatchArray($expectedA);
     expect($matchB[0])->toMatchArray($expectedB);
-    expect($matchA[0])->toHaveKeys(['query_id', 'query_metadata']);
-    expect($matchB[0])->toHaveKeys(['query_id', 'query_metadata']);
+    expect($matchA[0])->toHaveKeys(['query_id', 'query_metadata', 'query_matches']);
+    expect($matchB[0])->toHaveKeys(['query_id', 'query_metadata', 'query_matches']);
+    expect($matchA[0]['query_matches'])->toHaveCount(2);
+    expect($matchB[0]['query_matches'])->toHaveCount(1);
 
     $latestPayload = json_decode(File::get($latestPointer), true);
     expect($latestPayload['file'])->toBe('storage/runs/all_20260505_000738.json');
     expect($latestPayload['run_at'])->toBe(Carbon::now()->toIso8601String());
 });
-

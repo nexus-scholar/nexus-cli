@@ -2,187 +2,107 @@
 
 namespace App\Console\Commands;
 
+use App\Search\SearchConsoleRenderer;
+use App\Search\SearchPlanLoader;
+use App\Search\SearchRunService;
+use App\Search\SearchSelection;
 use Illuminate\Console\Command;
-use Symfony\Component\Yaml\Yaml;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
-use Nexus\Search\Application\UseCase\SearchAcrossProviders;
-use Nexus\Search\Application\Dto\ScholarlyWorkDto;
-use Nexus\Search\Domain\ScholarlyWork;
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\warning;
+
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\warning;
 
 class NexusSearch extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'nexus:search {--id= : run specific query} {--all : run all queries}';
+    protected $signature = 'nexus:search
+        {--id= : Run a specific query ID}
+        {--all : Run all configured queries}
+        {--file= : Query YAML file path, relative to resources/ or the app root}
+        {--project= : Override the project ID passed to nexus-scholar/core}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Run scholarly search queries and save results as JSON runs.';
+    protected $description = 'Run scholarly search queries through nexus-scholar/core and save JSON run files.';
 
-    /**
-     * Execute the console command.
-     */
-    public function handle(SearchAcrossProvidersHandler $handler)
-    {
-        $queriesPath = resource_path('queries/thesis-queries.yml');
+    public function handle(
+        SearchAcrossProvidersHandler $handler,
+        SearchPlanLoader $plans,
+        SearchRunService $runs,
+        SearchConsoleRenderer $renderer,
+    ): int {
+        try {
+            $selection = SearchSelection::fromOptions($this->option('id'), (bool) $this->option('all'));
+            $plan = $plans->load($this->resolveQueriesPath());
+        } catch (\Throwable $exception) {
+            error($exception->getMessage());
 
-        if (!File::exists($queriesPath)) {
-            error("Queries file not found at: {$queriesPath}");
             return self::FAILURE;
         }
 
-        $yaml = Yaml::parseFile($queriesPath);
-        $searches = $yaml['searches'] ?? [];
+        if ($plan->isEmpty()) {
+            warning("No queries found in {$plan->sourcePath}");
 
-        if (empty($searches)) {
-            warning("No queries found in {$queriesPath}");
             return self::SUCCESS;
         }
 
-        $idOpt = $this->option('id');
-        $allOpt = $this->option('all');
+        try {
+            $selected = $plan->select($selection);
+        } catch (\Throwable $exception) {
+            error($exception->getMessage());
 
-        if (!$idOpt && !$allOpt) {
-            error("You must specify either --id=QUERY_ID or --all.");
             return self::FAILURE;
         }
 
-        if ($idOpt) {
-            $searches = array_filter($searches, fn($q) => $q['id'] === $idOpt);
-            if (empty($searches)) {
-                error("Query ID '{$idOpt}' not found in thesis-queries-old-1.yml");
-                return self::FAILURE;
-            }
-        }
+        $projectId = (string) ($this->option('project') ?: $plan->projectId);
+        $renderer->renderStart($this, $plan, count($selected), $projectId);
 
-        // Initialize runs directory
-        $runsDir = storage_path('runs');
-        if (!File::exists($runsDir)) {
-            File::makeDirectory($runsDir, 0755, true);
-        }
-
-        $timestamp = now()->format('Ymd_His');
-        $globalCorpusData = [];
-
-        foreach ($searches as $search) {
-            info("Executing search: {$search['id']} ({$search['label']})");
-            $this->line("Query: {$search['query']}");
-
-            $command = new SearchAcrossProviders(
-                query: (string) $search['query'],
-                projectId: 'default-project',
-                maxResults: $search['limit'] ?? 50,
-                yearFrom: $search['year_from'] ?? null
+        try {
+            $report = $runs->run(
+                plan: $plan,
+                selection: $selection,
+                handler: $handler,
+                projectIdOverride: $projectId,
+                onQueryCompleted: fn ($queryRun, $current, $total) => $renderer->renderQueryRun(
+                    $this,
+                    $queryRun,
+                    $current,
+                    $total
+                ),
             );
+        } catch (\Throwable $exception) {
+            error($exception->getMessage());
 
-            $result = $handler->handle($command);
-
-            $this->renderProviderStats($result->providerStats);
-            $this->renderDedupSummary($result->totalRaw, $result->corpus->count());
-
-            $runData = [];
-            foreach ($result->corpus->all() as $work) {
-                $workData = $this->mapWorkToArray($work);
-                $workData['query_id'] = $search['id'] ?? null;
-                $workData['query_metadata'] = $search['metadata'] ?? [];
-                $runData[] = $workData;
-                $primaryKey = $work->primaryId()?->toString() ?? uniqid('work_');
-                $globalCorpusData[$primaryKey] = $workData;
-            }
-
-            $runFile = "{$runsDir}/{$search['id']}_{$timestamp}.json";
-            File::put($runFile, json_encode(array_values($runData), JSON_PRETTY_PRINT));
-            $this->line("  Saved to: {$runFile}");
+            return self::FAILURE;
         }
 
-        if ($allOpt) {
-            $globalFile = "{$runsDir}/all_{$timestamp}.json";
-            File::put($globalFile, json_encode(array_values($globalCorpusData), JSON_PRETTY_PRINT));
-            $this->line("  Saved global deduped master to: {$globalFile}");
-            $this->line('  Note: all_*.json is deduplicated across all queries.');
-
-            $latestPointer = "{$runsDir}/latest.json";
-            $latestData = [
-                'file' => "storage/runs/all_{$timestamp}.json",
-                'run_at' => now()->toIso8601String()
-            ];
-            File::put($latestPointer, json_encode($latestData, JSON_PRETTY_PRINT));
-            info("Updated storage/runs/latest.json pointer.");
-        } elseif ($idOpt) {
-            // For a single run, also update latest pointer to this file
-            $latestPointer = "{$runsDir}/latest.json";
-            $latestData = [
-                'file' => "storage/runs/{$idOpt}_{$timestamp}.json",
-                'run_at' => now()->toIso8601String()
-            ];
-            File::put($latestPointer, json_encode($latestData, JSON_PRETTY_PRINT));
-            info("Updated storage/runs/latest.json pointer.");
-        }
+        $renderer->renderFinished($this, $report);
 
         return self::SUCCESS;
     }
 
-    private function renderProviderStats(array $providerStats): void
+    private function resolveQueriesPath(): string
     {
-        if ($providerStats === []) {
-            $this->line('  Providers: none (all skipped or disabled).');
-            return;
+        $file = $this->option('file');
+        if (is_string($file) && trim($file) !== '') {
+            return $this->normalizeInputPath($file);
         }
 
-        $rows = [];
-        $failures = [];
-        foreach ($providerStats as $stat) {
-            $message = $stat->skipReason ?? '—';
-            $rows[] = [
-                $stat->alias,
-                $stat->resultCount,
-                $stat->latencyMs . 'ms',
-                $stat->skipReason === null ? 'OK' : 'Failed',
-                Str::limit($message, 80),
-            ];
+        $configured = config('nexus.search.queries_path', 'queries/thesis-queries.yml');
 
-            if ($stat->skipReason !== null) {
-                $failures[] = ['provider' => $stat->alias, 'message' => $message];
-            }
-        }
-
-        $this->table(['Provider', 'Results', 'Latency', 'Status', 'Message'], $rows);
-
-        if ($failures !== []) {
-            $this->line('<fg=yellow>Provider failures:</>');
-            foreach ($failures as $failure) {
-                $this->line(sprintf('  - <fg=red>%s</>: %s', $failure['provider'], $failure['message']));
-            }
-        }
+        return resource_path($configured);
     }
 
-    private function renderDedupSummary(int $totalRaw, int $uniqueCount): void
+    private function normalizeInputPath(string $path): string
     {
-        $duplicates = max(0, $totalRaw - $uniqueCount);
-        $dedupRate = $totalRaw > 0 ? round(($uniqueCount / $totalRaw) * 100, 1) : 0.0;
+        if (Str::startsWith($path, ['/', '\\']) || preg_match('#^[A-Za-z]:\\\\#', $path)) {
+            return $path;
+        }
 
-        $this->line(sprintf(
-            '  Raw: <comment>%d</comment>  →  Unique: <comment>%d</comment>  (dupes: %d, %s%% kept)',
-            $totalRaw,
-            $uniqueCount,
-            $duplicates,
-            $dedupRate
-        ));
-    }
+        $basePath = base_path($path);
+        if (File::exists($basePath)) {
+            return $basePath;
+        }
 
-    private function mapWorkToArray(ScholarlyWork $work): array
-    {
-        return ScholarlyWorkDto::fromDomain($work);
+        return resource_path($path);
     }
 }

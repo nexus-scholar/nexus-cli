@@ -15,15 +15,19 @@ return [
 
     'mail_to' => env('NEXUS_MAIL_TO', 'admin@example.com'),
 
+    'search' => [
+        'queries_path' => env('NEXUS_QUERIES_PATH', 'queries/thesis-queries.yml'),
+    ],
+
     'providers' => [
         'ieee' => [
             'api_key' => env('NEXUS_IEEE_API_KEY'),
         ],
-        
+
         'semantic_scholar' => [
             'api_key' => env('NEXUS_S2_API_KEY'),
         ],
-        
+
         'pubmed' => [
             'api_key' => env('NEXUS_PUBMED_API_KEY'),
         ],
