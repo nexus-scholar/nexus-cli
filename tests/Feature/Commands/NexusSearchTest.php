@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 use Nexus\Search\Application\Aggregator\AggregatedResult;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
 use Nexus\Search\Application\Dto\ScholarlyWorkDto;
+use Nexus\Search\Application\Port\SearchExecutorPort;
+use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\ScholarlyWork;
 use Nexus\Search\Domain\SearchQuery;
@@ -42,6 +44,7 @@ beforeEach(function () {
         Schema::create('projects', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->timestamp('locked_at')->nullable();
+            $table->timestamps();
         });
         $this->createdProjectsTable = true;
     }
@@ -107,6 +110,9 @@ function bindAggregator(AggregatedResult|callable $resultFactory): void
             return $this->resultFactory;
         }
     });
+
+    app()->forgetInstance(SearchAcrossProvidersHandler::class);
+    app()->instance(SearchExecutorPort::class, app(SearchAcrossProvidersHandler::class));
 }
 
 function makeWork(
@@ -242,13 +248,15 @@ test('passes YAML provider aliases into the core search command', function () {
             'label' => 'Tomato',
             'query' => 'tomato segmentation',
             'providers' => ['openalex', 'arxiv', 'openalex'],
+            'include_raw_data' => true,
         ],
     ]);
 
-    $received = (object) ['providers' => null];
+    $received = (object) ['providers' => null, 'includeRawData' => null];
 
     bindAggregator(function (SearchQuery $query) use ($received): AggregatedResult {
         $received->providers = property_exists($query, 'providerAliases') ? $query->providerAliases : [];
+        $received->includeRawData = $query->includeRawData;
 
         return new AggregatedResult(
             corpus: CorpusSlice::empty(),
@@ -267,6 +275,7 @@ test('passes YAML provider aliases into the core search command', function () {
         ->contains(fn (ReflectionParameter $parameter): bool => $parameter->getName() === 'providerAliases');
 
     expect($received->providers)->toBe($supportsProviderAliases ? ['openalex', 'arxiv'] : []);
+    expect($received->includeRawData)->toBeTrue();
 });
 
 test('writes global deduped master when running all queries', function () {

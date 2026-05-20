@@ -21,6 +21,7 @@ final readonly class SearchQueryDefinition
         public ?string $excludeTitleAbstract,
         public array $metadata,
         public array $providerAliases = [],
+        public bool $includeRawData = false,
     ) {}
 
     public static function fromCoreItem(object $item): self
@@ -36,6 +37,7 @@ final readonly class SearchQueryDefinition
             excludeTitleAbstract: $item->excludeTitleAbstract,
             metadata: $item->metadata,
             providerAliases: $item->providerAliases,
+            includeRawData: (bool) ($item->includeRawData ?? false),
         );
     }
 
@@ -71,6 +73,7 @@ final readonly class SearchQueryDefinition
             excludeTitleAbstract: self::nullableString($rawSearch['exclude_title_abstract'] ?? null),
             metadata: $metadata,
             providerAliases: self::providerAliases($rawSearch['providers'] ?? []),
+            includeRawData: self::boolValue($rawSearch['include_raw_data'] ?? false),
         );
     }
 
@@ -86,6 +89,10 @@ final readonly class SearchQueryDefinition
 
         if (self::coreCommandAcceptsProviderAliases()) {
             $arguments['providerAliases'] = $this->providerAliases;
+        }
+
+        if (self::coreCommandAcceptsIncludeRawData()) {
+            $arguments['includeRawData'] = $this->includeRawData;
         }
 
         return new SearchAcrossProviders(...$arguments);
@@ -122,6 +129,10 @@ final readonly class SearchQueryDefinition
             $metadata['providers'] = $this->providerAliases;
         }
 
+        if ($this->includeRawData) {
+            $metadata['include_raw_data'] = true;
+        }
+
         return $metadata;
     }
 
@@ -143,6 +154,23 @@ final readonly class SearchQueryDefinition
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private static function boolValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
     }
 
     /**
@@ -178,6 +206,19 @@ final readonly class SearchQueryDefinition
 
         foreach ($constructor->getParameters() as $parameter) {
             if ($parameter->getName() === 'providerAliases') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function coreCommandAcceptsIncludeRawData(): bool
+    {
+        $constructor = new \ReflectionMethod(SearchAcrossProviders::class, '__construct');
+
+        foreach ($constructor->getParameters() as $parameter) {
+            if ($parameter->getName() === 'includeRawData') {
                 return true;
             }
         }
