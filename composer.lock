@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4f3dc76f6666805d9e339c9dd1662927",
+    "content-hash": "b82e67e9fae67158d54a4d8c4bee6ba4",
     "packages": [
         {
             "name": "brick/math",
@@ -2589,7 +2589,7 @@
             "dist": {
                 "type": "path",
                 "url": "../core",
-                "reference": "495f717276f766ad2169051548e71ab545d27d62"
+                "reference": "a50d297530b3a19c332962616c43149a07471a32"
             },
             "require": {
                 "composer/ca-bundle": "^1.5",
@@ -2600,10 +2600,12 @@
                 "symfony/yaml": "^7.0 || ^8.0"
             },
             "require-dev": {
+                "laravel/pint": "^1.29",
                 "mockery/mockery": "^1.6",
                 "orchestra/testbench": "^11.1",
                 "pestphp/pest": "^3.0",
-                "php-vcr/php-vcr": "^1.7"
+                "php-vcr/php-vcr": "^1.7",
+                "phpstan/phpstan": "^2.1"
             },
             "type": "library",
             "extra": {
@@ -2622,6 +2624,26 @@
                 "psr-4": {
                     "Tests\\": "tests/"
                 }
+            },
+            "scripts": {
+                "test": [
+                    "php -d memory_limit=512M vendor/bin/pest"
+                ],
+                "test:unit": [
+                    "php -d memory_limit=512M vendor/bin/pest tests/Unit"
+                ],
+                "test:feature": [
+                    "php -d memory_limit=512M vendor/bin/pest tests/Feature"
+                ],
+                "analyse": [
+                    "php -d memory_limit=512M vendor/bin/phpstan analyse"
+                ],
+                "format": [
+                    "vendor/bin/pint --dirty"
+                ],
+                "format:check": [
+                    "vendor/bin/pint --test --dirty"
+                ]
             },
             "license": [
                 "MIT"
@@ -9638,7 +9660,7 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.3"
+        "php": "^8.4"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"

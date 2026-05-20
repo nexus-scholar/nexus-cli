@@ -50,6 +50,7 @@ class NexusGraph extends Command
 
         if (($source === null) !== ($target === null)) {
             error('Both --source and --target are required when computing a shortest path.');
+
             return self::FAILURE;
         }
 
@@ -63,17 +64,18 @@ class NexusGraph extends Command
             );
         } catch (\Throwable $exception) {
             error($exception->getMessage());
+
             return self::FAILURE;
         }
 
         $relativeRunFile = $this->toRelativePath($runFile);
-        $this->line('Run file: ' . $relativeRunFile);
-        $this->line('Graph type: ' . $type->value);
-        $this->line('Works: ' . count($analysis->works));
-        $this->line('Relationships extracted: ' . $analysis->relationshipCount());
-        $this->line('Nodes: ' . $analysis->metrics->nodeCount);
-        $this->line('Edges: ' . $analysis->metrics->edgeCount);
-        $this->line('Density: ' . number_format($analysis->metrics->density, 6));
+        $this->line('Run file: '.$relativeRunFile);
+        $this->line('Graph type: '.$type->value);
+        $this->line('Works: '.count($analysis->works));
+        $this->line('Relationships extracted: '.$analysis->relationshipCount());
+        $this->line('Nodes: '.$analysis->metrics->nodeCount);
+        $this->line('Edges: '.$analysis->metrics->edgeCount);
+        $this->line('Density: '.number_format($analysis->metrics->density, 6));
 
         if ($analysis->relationshipCount() === 0) {
             warning('No citation relationships found. Re-run search with include_raw_data: true or provide references in the run JSON.');
@@ -83,18 +85,19 @@ class NexusGraph extends Command
             if ($analysis->path === null) {
                 warning('No shortest path found between the requested works.');
             } else {
-                $this->line('Shortest path edges: ' . $analysis->path->edgeCount());
+                $this->line('Shortest path edges: '.$analysis->path->edgeCount());
             }
         }
 
         if ($this->option('dry-run')) {
             info('Dry run: no graph file written.');
+
             return self::SUCCESS;
         }
 
         $outputFile = $this->resolveOutputFile($runFile, $type);
         $this->writeOutput($outputFile, $analysis->toPayload($relativeRunFile, now()->toIso8601String()));
-        $this->line('Saved: ' . $this->toRelativePath($outputFile));
+        $this->line('Saved: '.$this->toRelativePath($outputFile));
 
         return self::SUCCESS;
     }
@@ -106,6 +109,7 @@ class NexusGraph extends Command
             $runPath = $this->normalizePath((string) $runArg);
             if (! File::exists($runPath)) {
                 error("Run file not found: {$runPath}");
+
                 return null;
             }
 
@@ -115,6 +119,7 @@ class NexusGraph extends Command
         $latestPointer = storage_path('runs/latest.json');
         if (! File::exists($latestPointer)) {
             error('latest.json pointer not found. Run nexus:search or pass a run file path.');
+
             return null;
         }
 
@@ -122,12 +127,14 @@ class NexusGraph extends Command
         $latestFile = $latest['file'] ?? null;
         if (! is_string($latestFile) || $latestFile === '') {
             error('latest.json pointer is invalid.');
+
             return null;
         }
 
         $resolved = base_path($latestFile);
         if (! File::exists($resolved)) {
             error("Run file referenced by latest.json not found: {$resolved}");
+
             return null;
         }
 
@@ -142,16 +149,19 @@ class NexusGraph extends Command
         $decoded = json_decode(File::get($runFile), true);
         if (! is_array($decoded)) {
             error("Run file is not valid JSON: {$runFile}");
+
             return null;
         }
 
         if ($decoded === []) {
             error("Run file is empty: {$runFile}");
+
             return null;
         }
 
         if (! array_is_list($decoded)) {
             error("Run file must contain a JSON list of works: {$runFile}");
+
             return null;
         }
 
@@ -194,6 +204,7 @@ class NexusGraph extends Command
             return WorkId::fromString((string) $value);
         } catch (\InvalidArgumentException $exception) {
             error("Invalid --{$option} work id: {$exception->getMessage()}");
+
             return false;
         }
     }
@@ -221,7 +232,7 @@ class NexusGraph extends Command
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function writeOutput(string $outputFile, array $payload): void
     {

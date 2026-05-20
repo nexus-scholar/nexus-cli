@@ -1,14 +1,15 @@
 <?php
 
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Nexus\Search\Application\Aggregator\AggregatedResult;
 use Nexus\Search\Application\Aggregator\SearchAggregatorPort;
 use Nexus\Search\Application\Dto\ScholarlyWorkDto;
 use Nexus\Search\Application\Port\SearchExecutorPort;
+use Nexus\Search\Application\UseCase\SearchAcrossProviders;
 use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\ScholarlyWork;
@@ -270,7 +271,7 @@ test('passes YAML provider aliases into the core search command', function () {
         throw new RuntimeException(Artisan::output());
     }
 
-    $constructor = new ReflectionMethod(\Nexus\Search\Application\UseCase\SearchAcrossProviders::class, '__construct');
+    $constructor = new ReflectionMethod(SearchAcrossProviders::class, '__construct');
     $supportsProviderAliases = collect($constructor->getParameters())
         ->contains(fn (ReflectionParameter $parameter): bool => $parameter->getName() === 'providerAliases');
 

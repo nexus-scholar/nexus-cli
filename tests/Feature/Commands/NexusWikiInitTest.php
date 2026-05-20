@@ -121,7 +121,7 @@ test('does not overwrite existing schema md', function () {
 });
 
 test('creates empty schema when template missing', function () {
-    $tempName = $this->templatePath . '.backup';
+    $tempName = $this->templatePath.'.backup';
     if (File::exists($this->templatePath)) {
         File::move($this->templatePath, $tempName);
     }

@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\File;
 
 beforeEach(function () {
     $this->runsDir = storage_path('runs');
-    if (!File::isDirectory($this->runsDir)) {
+    if (! File::isDirectory($this->runsDir)) {
         File::makeDirectory($this->runsDir, 0755, true);
     }
 
@@ -38,4 +38,3 @@ test('shows stats for latest run file', function () {
         ->expectsOutputToContain('Q1')
         ->assertExitCode(0);
 });
-

@@ -28,7 +28,7 @@ afterEach(function () {
 function writeRun(string $path, array $payload): void
 {
     $dir = dirname($path);
-    if (!File::isDirectory($dir)) {
+    if (! File::isDirectory($dir)) {
         File::makeDirectory($dir, 0755, true);
     }
     File::put($path, json_encode($payload, JSON_PRETTY_PRINT));
@@ -437,6 +437,7 @@ test('respects max-llm limit', function () {
     $callCount = 0;
     $llmCallable = function ($prompt) use (&$callCount) {
         $callCount++;
+
         return json_encode(['include' => true, 'reason' => 'ok', 'confidence' => 0.8]);
     };
     app()->bind('nexus.llm', fn () => $llmCallable);
@@ -535,7 +536,7 @@ test('resolves run file from latest.json pointer', function () {
 
     $latestPointer = "{$this->runsDir}/latest.json";
     File::put($latestPointer, json_encode([
-        'file' => "storage/runs/all_20260506_000000.json",
+        'file' => 'storage/runs/all_20260506_000000.json',
         'run_at' => '2026-05-06T00:00:00+00:00',
     ]));
     $this->createdPaths[] = $latestPointer;
@@ -688,7 +689,7 @@ test('does not store audit trail when disabled', function () {
 
 test('excluded by keyword does not call LLM', function () {
     $llmCallable = function () {
-        throw new \RuntimeException('LLM should not be called');
+        throw new RuntimeException('LLM should not be called');
     };
     app()->bind('nexus.llm', fn () => $llmCallable);
 
@@ -825,4 +826,3 @@ test('LLM include false results in exclusion even when deterministic passes', fu
     expect($data['decisions'][0]['final_decision_source'])->toBe('llm');
     expect($data['decisions'][0]['llm_include'])->toBeFalse();
 });
-

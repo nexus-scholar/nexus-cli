@@ -1,11 +1,14 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "nexus-scholar/cli",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Laravel Artisan workspace for running Nexus Scholar search, screening, retrieval, graph, and export workflows.",
     "keywords": [
-        "laravel",
-        "framework"
+        "nexus-scholar",
+        "systematic-review",
+        "literature-review",
+        "artisan",
+        "scholarly-search"
     ],
     "license": "MIT",
     "repositories": [
@@ -41,7 +44,7 @@
         }
     ],
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "nexus-scholar/core": "dev-master",
@@ -84,6 +87,12 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "format": [
+            "pint"
+        ],
+        "format:check": [
+            "pint --test"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
