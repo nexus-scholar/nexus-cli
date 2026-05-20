@@ -38,13 +38,15 @@ class NexusRunStats extends Command
         }
 
         $runData = json_decode($runDataRaw, true);
-        if (!is_array($runData)) {
+        if (! is_array($runData)) {
             error("Run file is not valid JSON: {$runFile}");
+
             return self::FAILURE;
         }
 
         if ($runData === []) {
             warning("Run file is empty: {$runFile}");
+
             return self::SUCCESS;
         }
 
@@ -52,8 +54,9 @@ class NexusRunStats extends Command
         $queryCounts = [];
 
         foreach ($runData as $index => $work) {
-            if (!is_array($work)) {
+            if (! is_array($work)) {
                 error("Run file has invalid entry at index {$index} (not an object).");
+
                 return self::FAILURE;
             }
 
@@ -64,15 +67,15 @@ class NexusRunStats extends Command
             $queryCounts[$queryId] = ($queryCounts[$queryId] ?? 0) + 1;
         }
 
-        $this->line('Run file: ' . $this->toRelativePath($runFile));
-        $this->line('Total works: ' . count($runData));
+        $this->line('Run file: '.$this->toRelativePath($runFile));
+        $this->line('Total works: '.count($runData));
 
         $this->table(
             ['Provider', 'Count'],
             $this->formatCounts($providerCounts)
         );
 
-        if (count($queryCounts) > 1 || !isset($queryCounts['unknown'])) {
+        if (count($queryCounts) > 1 || ! isset($queryCounts['unknown'])) {
             $this->table(
                 ['Query ID', 'Count'],
                 $this->formatCounts($queryCounts)
@@ -89,8 +92,9 @@ class NexusRunStats extends Command
         $runArg = $this->argument('run');
         if ($runArg) {
             $runPath = $this->normalizePath($runArg);
-            if (!File::exists($runPath)) {
+            if (! File::exists($runPath)) {
                 error("Run file not found: {$runPath}");
+
                 return null;
             }
 
@@ -98,21 +102,24 @@ class NexusRunStats extends Command
         }
 
         $latestPointer = storage_path('runs/latest.json');
-        if (!File::exists($latestPointer)) {
+        if (! File::exists($latestPointer)) {
             error('latest.json pointer not found. Run nexus:search or pass a run file path.');
+
             return null;
         }
 
         $latest = json_decode(File::get($latestPointer), true);
         $latestFile = $latest['file'] ?? null;
-        if (!is_string($latestFile) || $latestFile === '') {
+        if (! is_string($latestFile) || $latestFile === '') {
             error('latest.json pointer is invalid.');
+
             return null;
         }
 
         $resolved = base_path($latestFile);
-        if (!File::exists($resolved)) {
+        if (! File::exists($resolved)) {
             error("Run file referenced by latest.json not found: {$resolved}");
+
             return null;
         }
 
@@ -130,8 +137,9 @@ class NexusRunStats extends Command
 
     private function safeReadFile(string $path): ?string
     {
-        if (!File::exists($path)) {
+        if (! File::exists($path)) {
             error("File not found: {$path}");
+
             return null;
         }
 
@@ -139,6 +147,7 @@ class NexusRunStats extends Command
             return File::get($path);
         } catch (\Throwable $e) {
             error("Failed to read file: {$path}. {$e->getMessage()}");
+
             return null;
         }
     }
@@ -178,4 +187,3 @@ class NexusRunStats extends Command
         return $rows;
     }
 }
-

@@ -14,7 +14,7 @@ afterEach(function () {
 });
 
 test('preserves existing content in subdirectories', function () {
-    if (!File::isDirectory("{$this->basePath}/papers")) {
+    if (! File::isDirectory("{$this->basePath}/papers")) {
         File::makeDirectory("{$this->basePath}/papers", 0755, true);
     }
     $testPaper = "# Test Paper\nContent here";
@@ -116,10 +116,10 @@ test('log file date format is valid', function () {
 });
 
 test('handles complex existing tree', function () {
-    if (!File::isDirectory("{$this->basePath}/papers")) {
+    if (! File::isDirectory("{$this->basePath}/papers")) {
         File::makeDirectory("{$this->basePath}/papers", 0755, true);
     }
-    if (!File::isDirectory("{$this->basePath}/concepts")) {
+    if (! File::isDirectory("{$this->basePath}/concepts")) {
         File::makeDirectory("{$this->basePath}/concepts", 0755, true);
     }
     File::put("{$this->basePath}/papers/paper1.md", '# Paper 1');
@@ -207,7 +207,7 @@ test('gitkeep files have expected behavior', function () {
 });
 
 test('respects existing directory structure', function () {
-    if (!File::isDirectory("{$this->basePath}/papers")) {
+    if (! File::isDirectory("{$this->basePath}/papers")) {
         File::makeDirectory("{$this->basePath}/papers", 0755, true);
     }
 

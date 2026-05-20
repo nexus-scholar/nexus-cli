@@ -10,9 +10,9 @@ use Nexus\Search\Domain\ScholarlyWork;
 final readonly class CitationGraphRunAnalysis
 {
     /**
-     * @param list<ScholarlyWork> $works
-     * @param array<string, list<string>> $referencesByWorkId
-     * @param array<string, list<string>> $citingWorkIdsByCitedWorkId
+     * @param  list<ScholarlyWork>  $works
+     * @param  array<string, list<string>>  $referencesByWorkId
+     * @param  array<string, list<string>>  $citingWorkIdsByCitedWorkId
      */
     public function __construct(
         public CitationGraph $graph,

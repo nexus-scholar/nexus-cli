@@ -18,7 +18,7 @@ use Nexus\Shared\ValueObject\WorkId;
 final class CitationGraphRunAnalyzer
 {
     /**
-     * @param list<array<string, mixed>> $runData
+     * @param  list<array<string, mixed>>  $runData
      */
     public function analyze(
         array $runData,
@@ -29,9 +29,9 @@ final class CitationGraphRunAnalyzer
     ): CitationGraphRunAnalysis {
         [$works, $referencesByWorkId, $citingWorkIdsByCitedWorkId] = $this->extract($runData);
 
-        $repository = new InMemoryCitationGraphRepository();
-        $buildHandler = new BuildCitationGraphHandler(new CitationGraphBuilder(), $repository);
-        $algorithm = new MbsoftNetworkMetricsCalculator();
+        $repository = new InMemoryCitationGraphRepository;
+        $buildHandler = new BuildCitationGraphHandler(new CitationGraphBuilder, $repository);
+        $algorithm = new MbsoftNetworkMetricsCalculator;
 
         $command = match ($type) {
             CitationGraphType::CITATION => BuildCitationGraph::directCitation(
@@ -73,7 +73,7 @@ final class CitationGraphRunAnalyzer
     }
 
     /**
-     * @param list<array<string, mixed>> $runData
+     * @param  list<array<string, mixed>>  $runData
      * @return array{0: list<ScholarlyWork>, 1: array<string, list<string>>, 2: array<string, list<string>>}
      */
     private function extract(array $runData): array
@@ -112,7 +112,7 @@ final class CitationGraphRunAnalyzer
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function toWork(array $payload, int $index): ScholarlyWork
     {
@@ -126,7 +126,7 @@ final class CitationGraphRunAnalyzer
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return list<string>
      */
     private function extractReferences(array $payload): array
@@ -146,7 +146,7 @@ final class CitationGraphRunAnalyzer
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return list<string>
      */
     private function extractCitingWorks(array $payload): array
@@ -168,7 +168,7 @@ final class CitationGraphRunAnalyzer
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
     private function rawData(array $payload): array
@@ -190,7 +190,7 @@ final class CitationGraphRunAnalyzer
     }
 
     /**
-     * @param array<string, string> $ids
+     * @param  array<string, string>  $ids
      */
     private function collectIds(mixed $value, array &$ids, ?string $hint = null): void
     {
@@ -219,6 +219,7 @@ final class CitationGraphRunAnalyzer
                 foreach ($this->idsFromObject($item) as $id) {
                     $ids[$id] = $id;
                 }
+
                 continue;
             }
 
@@ -229,7 +230,7 @@ final class CitationGraphRunAnalyzer
     }
 
     /**
-     * @param array<string, mixed> $value
+     * @param  array<string, mixed>  $value
      * @return list<string>
      */
     private function idsFromObject(array $value): array
@@ -279,25 +280,25 @@ final class CitationGraphRunAnalyzer
         }
 
         if (preg_match('#^https?://(dx\.)?doi\.org/(.+)$#i', $value, $matches) === 1) {
-            return ['doi:' . strtolower($matches[2])];
+            return ['doi:'.strtolower($matches[2])];
         }
 
         if (preg_match('#^https?://openalex\.org/(W\d+)$#i', $value) === 1) {
-            return ['openalex:' . strtolower($value)];
+            return ['openalex:'.strtolower($value)];
         }
 
         if ($hint !== null) {
-            return [strtolower($hint . ':' . $value)];
+            return [strtolower($hint.':'.$value)];
         }
 
         if (str_starts_with(strtolower($value), '10.')) {
-            return ['doi:' . strtolower($value)];
+            return ['doi:'.strtolower($value)];
         }
 
         if (preg_match('/^W\d+$/i', $value) === 1) {
             return [
-                'openalex:' . strtolower($value),
-                'openalex:https://openalex.org/' . strtolower($value),
+                'openalex:'.strtolower($value),
+                'openalex:https://openalex.org/'.strtolower($value),
             ];
         }
 

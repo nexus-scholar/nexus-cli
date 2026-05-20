@@ -69,7 +69,7 @@ function makeRunPayload(string $title, int $year, string $doi, string $source): 
 function writeRunFile(string $path, array $payload): void
 {
     $dir = dirname($path);
-    if (!File::isDirectory($dir)) {
+    if (! File::isDirectory($dir)) {
         File::makeDirectory($dir, 0755, true);
     }
     File::put($path, json_encode($payload, JSON_PRETTY_PRINT));
@@ -114,7 +114,7 @@ test('creates a paper page from a provided run file', function () {
 });
 
 test('skips existing paper pages without overwriting', function () {
-    if (!File::isDirectory($this->papersDir)) {
+    if (! File::isDirectory($this->papersDir)) {
         File::makeDirectory($this->papersDir, 0755, true);
     }
 
@@ -155,7 +155,7 @@ test('uses latest.json when file argument is missing', function () {
     writeRunFile($runFile, $payload);
     $this->createdFiles[] = $runFile;
 
-    if (!File::isDirectory($this->runsDir)) {
+    if (! File::isDirectory($this->runsDir)) {
         File::makeDirectory($this->runsDir, 0755, true);
     }
     File::put($this->latestPointer, json_encode([
@@ -173,7 +173,7 @@ test('uses latest.json when file argument is missing', function () {
 });
 
 test('fails when latest.json points to a missing run file', function () {
-    if (!File::isDirectory($this->runsDir)) {
+    if (! File::isDirectory($this->runsDir)) {
         File::makeDirectory($this->runsDir, 0755, true);
     }
     File::put($this->latestPointer, json_encode([
@@ -185,4 +185,3 @@ test('fails when latest.json points to a missing run file', function () {
     $this->artisan('nexus:ingest')
         ->assertExitCode(1);
 });
-

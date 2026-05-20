@@ -38,8 +38,9 @@ class NexusIngest extends Command
         }
 
         $runData = json_decode(File::get($runFile), true);
-        if (!is_array($runData)) {
+        if (! is_array($runData)) {
             error("Run file is not valid JSON: {$runFile}");
+
             return self::FAILURE;
         }
 
@@ -49,13 +50,14 @@ class NexusIngest extends Command
 
         $createdCount = 0;
         foreach ($runData as $work) {
-            if (!is_array($work)) {
+            if (! is_array($work)) {
                 continue;
             }
 
             $title = (string) ($work['title'] ?? '');
             if (trim($title) === '') {
                 warning('Skipping entry with empty title.');
+
                 continue;
             }
 
@@ -65,6 +67,7 @@ class NexusIngest extends Command
 
             if (File::exists($paperPath)) {
                 warning("Skipping existing page: {$paperPath}");
+
                 continue;
             }
 
@@ -86,8 +89,9 @@ class NexusIngest extends Command
         $fileArg = $this->argument('file');
         if ($fileArg) {
             $filePath = $this->normalizePath($fileArg);
-            if (!File::exists($filePath)) {
+            if (! File::exists($filePath)) {
                 error("Run file not found: {$filePath}");
+
                 return null;
             }
 
@@ -95,21 +99,24 @@ class NexusIngest extends Command
         }
 
         $latestPointer = storage_path('runs/latest.json');
-        if (!File::exists($latestPointer)) {
+        if (! File::exists($latestPointer)) {
             error('latest.json pointer not found. Run nexus:search or pass a run file path.');
+
             return null;
         }
 
         $latestData = json_decode(File::get($latestPointer), true);
         $latestFile = $latestData['file'] ?? null;
-        if (!is_string($latestFile) || $latestFile === '') {
+        if (! is_string($latestFile) || $latestFile === '') {
             error('latest.json pointer is invalid.');
+
             return null;
         }
 
         $resolved = base_path($latestFile);
-        if (!File::exists($resolved)) {
+        if (! File::exists($resolved)) {
             error("Run file referenced by latest.json not found: {$resolved}");
+
             return null;
         }
 
@@ -127,13 +134,13 @@ class NexusIngest extends Command
 
     private function ensureWikiFolders(string $papersDir, string $logFile): void
     {
-        if (!File::isDirectory($papersDir)) {
+        if (! File::isDirectory($papersDir)) {
             File::makeDirectory($papersDir, 0755, true);
         }
 
-        if (!File::exists($logFile)) {
+        if (! File::exists($logFile)) {
             $logDir = dirname($logFile);
-            if (!File::isDirectory($logDir)) {
+            if (! File::isDirectory($logDir)) {
                 File::makeDirectory($logDir, 0755, true);
             }
             File::put($logFile, "# Wiki Activity Log\n\n| Date | Action | Details |\n|------|--------|---------|\n");
@@ -171,26 +178,26 @@ class NexusIngest extends Command
 
         $yaml = Yaml::dump($frontmatter, 4, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
 
-        return "---\n{$yaml}---\n\n" .
-            "## Summary\n\n" .
-            "(2-3 sentences: what problem, what method, what result)\n\n" .
-            "## Method\n\n" .
-            "(architecture, training setup, key design choices)\n\n" .
-            "## Dataset and Results\n\n" .
-            "(dataset name, size, label availability, reported numbers)\n\n" .
-            "## Thesis Connection\n\n" .
-            "> How does this paper support or challenge the thesis argument?\n" .
-            "> Does it address annotation scarcity? If not, say so explicitly.\n\n" .
-            "## Contradictions and Gaps\n\n" .
-            "> What does this paper NOT do that your paper does?\n" .
-            "> Is the dataset fully labeled? Controlled conditions only?\n" .
+        return "---\n{$yaml}---\n\n".
+            "## Summary\n\n".
+            "(2-3 sentences: what problem, what method, what result)\n\n".
+            "## Method\n\n".
+            "(architecture, training setup, key design choices)\n\n".
+            "## Dataset and Results\n\n".
+            "(dataset name, size, label availability, reported numbers)\n\n".
+            "## Thesis Connection\n\n".
+            "> How does this paper support or challenge the thesis argument?\n".
+            "> Does it address annotation scarcity? If not, say so explicitly.\n\n".
+            "## Contradictions and Gaps\n\n".
+            "> What does this paper NOT do that your paper does?\n".
+            "> Is the dataset fully labeled? Controlled conditions only?\n".
             "> No field condition evaluation? -> flag this\n";
     }
 
     private function extractDoi(array $ids): string
     {
         foreach ($ids as $id) {
-            if (!is_array($id)) {
+            if (! is_array($id)) {
                 continue;
             }
 
@@ -206,7 +213,7 @@ class NexusIngest extends Command
     {
         $names = [];
         foreach ($authors as $author) {
-            if (!is_array($author)) {
+            if (! is_array($author)) {
                 continue;
             }
 
@@ -230,4 +237,3 @@ class NexusIngest extends Command
         File::append($logFile, $entry);
     }
 }
-

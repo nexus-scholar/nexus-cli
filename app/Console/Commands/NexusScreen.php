@@ -43,8 +43,9 @@ class NexusScreen extends Command
             return self::FAILURE;
         }
         $runData = json_decode($runDataRaw, true);
-        if (!is_array($runData)) {
+        if (! is_array($runData)) {
             error("Run file is not valid JSON: {$runFile}");
+
             return self::FAILURE;
         }
 
@@ -53,26 +54,29 @@ class NexusScreen extends Command
             return self::FAILURE;
         }
         $criteria = json_decode($criteriaRaw, true);
-        if (!is_array($criteria)) {
+        if (! is_array($criteria)) {
             error("Criteria file is not valid JSON: {$criteriaFile}");
+
             return self::FAILURE;
         }
 
         $runValidation = $this->validateRunData($runData, $runFile);
         if ($runValidation !== null) {
             error($runValidation);
+
             return self::FAILURE;
         }
 
         $criteriaValidation = $this->validateCriteria($criteria, $criteriaFile);
         if ($criteriaValidation !== null) {
             error($criteriaValidation);
+
             return self::FAILURE;
         }
 
         $runId = pathinfo($runFile, PATHINFO_FILENAME);
         $screenDir = storage_path('screens');
-        if (!File::isDirectory($screenDir)) {
+        if (! File::isDirectory($screenDir)) {
             File::makeDirectory($screenDir, 0755, true);
         }
         $screenFile = "{$screenDir}/{$runId}.json";
@@ -85,6 +89,7 @@ class NexusScreen extends Command
         $allowEmptyInclude = (bool) $this->option('allow-empty-include') || (bool) $this->option('force');
         if ($includeKeywords === [] && ! $allowEmptyInclude) {
             error('Include keywords are empty. Use --allow-empty-include or --force to proceed.');
+
             return self::FAILURE;
         }
 
@@ -131,7 +136,7 @@ class NexusScreen extends Command
             } else {
                 $fallbackCount++;
             }
-         }
+        }
 
         $payload = [
             'run_file' => $this->toRelativePath($runFile),
@@ -169,8 +174,9 @@ class NexusScreen extends Command
         $runArg = $this->argument('run');
         if ($runArg) {
             $runPath = $this->normalizePath($runArg);
-            if (!File::exists($runPath)) {
+            if (! File::exists($runPath)) {
                 error("Run file not found: {$runPath}");
+
                 return null;
             }
 
@@ -178,21 +184,24 @@ class NexusScreen extends Command
         }
 
         $latestPointer = storage_path('runs/latest.json');
-        if (!File::exists($latestPointer)) {
+        if (! File::exists($latestPointer)) {
             error('latest.json pointer not found. Run nexus:search or pass a run file path.');
+
             return null;
         }
 
         $latest = json_decode(File::get($latestPointer), true);
         $latestFile = $latest['file'] ?? null;
-        if (!is_string($latestFile) || $latestFile === '') {
+        if (! is_string($latestFile) || $latestFile === '') {
             error('latest.json pointer is invalid.');
+
             return null;
         }
 
         $resolved = base_path($latestFile);
-        if (!File::exists($resolved)) {
+        if (! File::exists($resolved)) {
             error("Run file referenced by latest.json not found: {$resolved}");
+
             return null;
         }
 
@@ -204,9 +213,10 @@ class NexusScreen extends Command
         $criteriaOpt = $this->option('criteria');
         $criteriaPath = $criteriaOpt ? $this->normalizePath($criteriaOpt) : storage_path('criteria.json');
 
-        if (!File::exists($criteriaPath)) {
+        if (! File::exists($criteriaPath)) {
             error("Criteria file not found: {$criteriaPath}");
             $this->line('Create storage/criteria.json with include/exclude keywords to proceed.');
+
             return null;
         }
 
@@ -225,11 +235,12 @@ class NexusScreen extends Command
     private function normalizeKeywords(array $keywords): array
     {
         return array_values(array_filter(array_map(function ($kw) {
-            if (!is_string($kw)) {
+            if (! is_string($kw)) {
                 return null;
             }
             $trimmed = $this->normalizeText($kw);
-             return $trimmed === '' ? null : $trimmed;
+
+            return $trimmed === '' ? null : $trimmed;
         }, $keywords)));
     }
 
@@ -240,7 +251,7 @@ class NexusScreen extends Command
             if ($kw === '') {
                 continue;
             }
-            $pattern = '/\b' . preg_quote($kw, '/') . '\b/u';
+            $pattern = '/\b'.preg_quote($kw, '/').'\b/u';
             if (preg_match($pattern, $normalized) === 1) {
                 return true;
             }
@@ -249,9 +260,9 @@ class NexusScreen extends Command
         return false;
     }
 
-    private function yearInRange($year, $from, $to, string $unknownPolicy, bool &$yearMissing = null): bool
-     {
-        $yearMissing = !is_int($year);
+    private function yearInRange($year, $from, $to, string $unknownPolicy, ?bool &$yearMissing = null): bool
+    {
+        $yearMissing = ! is_int($year);
         if ($yearMissing) {
             return $unknownPolicy !== 'exclude';
         }
@@ -279,8 +290,9 @@ class NexusScreen extends Command
 
     private function safeReadFile(string $path): ?string
     {
-        if (!File::exists($path)) {
+        if (! File::exists($path)) {
             error("File not found: {$path}");
+
             return null;
         }
 
@@ -288,6 +300,7 @@ class NexusScreen extends Command
             return File::get($path);
         } catch (\Throwable $e) {
             error("Failed to read file: {$path}. {$e->getMessage()}");
+
             return null;
         }
     }
@@ -299,13 +312,13 @@ class NexusScreen extends Command
         }
 
         foreach ($runData as $index => $work) {
-            if (!is_array($work)) {
+            if (! is_array($work)) {
                 return "Run file has invalid entry at index {$index} (not an object).";
             }
 
             $required = ['title', 'abstract', 'year'];
             foreach ($required as $key) {
-                if (!array_key_exists($key, $work)) {
+                if (! array_key_exists($key, $work)) {
                     return "Run file entry {$index} missing key: {$key}.";
                 }
             }
@@ -317,15 +330,15 @@ class NexusScreen extends Command
     private function validateCriteria(array $criteria, string $criteriaFile): ?string
     {
         $missing = [];
-        if (!array_key_exists('include', $criteria)) {
+        if (! array_key_exists('include', $criteria)) {
             $missing[] = 'include';
         }
-        if (!array_key_exists('exclude', $criteria)) {
+        if (! array_key_exists('exclude', $criteria)) {
             $missing[] = 'exclude';
         }
 
         if ($missing !== []) {
-            return "Criteria file {$criteriaFile} missing keys: " . implode(', ', $missing);
+            return "Criteria file {$criteriaFile} missing keys: ".implode(', ', $missing);
         }
 
         return null;
@@ -337,8 +350,9 @@ class NexusScreen extends Command
         $policy = is_string($policy) ? strtolower($policy) : 'include';
         $allowed = ['include', 'exclude', 'log'];
 
-        if (!in_array($policy, $allowed, true)) {
+        if (! in_array($policy, $allowed, true)) {
             warning("Unknown unknown_year policy '{$policy}', defaulting to include.");
+
             return 'include';
         }
 
@@ -353,6 +367,7 @@ class NexusScreen extends Command
         }
 
         $value = (int) $max;
+
         return $value > 0 ? $value : 0;
     }
 
@@ -553,13 +568,13 @@ class NexusScreen extends Command
         $includeRule = $queryCriteria['include_title_abstract'] ?: 'No include rule provided.';
         $excludeRule = $queryCriteria['exclude_title_abstract'] ?: 'No exclude rule provided.';
 
-        return "You are screening a paper for inclusion.\n" .
-            "Title: {$title}\n" .
-            "Year: {$yearText}\n" .
-            "Abstract: {$abstract}\n\n" .
-            "Include rule: {$includeRule}\n" .
-            "Exclude rule: {$excludeRule}\n\n" .
-            "Return JSON only: {\"include\": true|false, \"reason\": \"...\", \"confidence\": 0-1}.";
+        return "You are screening a paper for inclusion.\n".
+            "Title: {$title}\n".
+            "Year: {$yearText}\n".
+            "Abstract: {$abstract}\n\n".
+            "Include rule: {$includeRule}\n".
+            "Exclude rule: {$excludeRule}\n\n".
+            'Return JSON only: {"include": true|false, "reason": "...", "confidence": 0-1}.';
     }
 
     private function buildLlmFallbackPrompt(string $title, string $abstract, $year, array $queryCriteria): string
@@ -568,13 +583,13 @@ class NexusScreen extends Command
         $includeRule = $queryCriteria['include_title_abstract'] ?: 'No include rule provided.';
         $excludeRule = $queryCriteria['exclude_title_abstract'] ?: 'No exclude rule provided.';
 
-        return "Decide include=true/false based on the rules below.\n" .
-            "Title: {$title}\n" .
-            "Year: {$yearText}\n" .
-            "Abstract: {$abstract}\n" .
-            "Include rule: {$includeRule}\n" .
-            "Exclude rule: {$excludeRule}\n" .
-            "Reply with JSON only: {\"include\": true|false, \"reason\": \"...\", \"confidence\": 0-1}.";
+        return "Decide include=true/false based on the rules below.\n".
+            "Title: {$title}\n".
+            "Year: {$yearText}\n".
+            "Abstract: {$abstract}\n".
+            "Include rule: {$includeRule}\n".
+            "Exclude rule: {$excludeRule}\n".
+            'Reply with JSON only: {"include": true|false, "reason": "...", "confidence": 0-1}.';
     }
 
     private function callLlm(callable $llm, string $prompt): ?string
@@ -584,9 +599,11 @@ class NexusScreen extends Command
             if (is_array($result) && isset($result['content'])) {
                 return (string) $result['content'];
             }
+
             return is_string($result) ? $result : null;
         } catch (\Throwable $e) {
             warning("LLM call failed: {$e->getMessage()}");
+
             return null;
         }
     }
@@ -613,7 +630,7 @@ class NexusScreen extends Command
     private function truncateAudit(string $value, array $criteria): ?string
     {
         $store = $criteria['llm']['store_audit'] ?? false;
-        if (!$store) {
+        if (! $store) {
             return null;
         }
 

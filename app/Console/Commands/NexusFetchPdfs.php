@@ -29,108 +29,116 @@ class NexusFetchPdfs extends Command
 
     public function handle(): int
     {
-         $screenFile = $this->resolveScreenFile();
-         if ($screenFile === null) {
-             return self::FAILURE;
-         }
+        $screenFile = $this->resolveScreenFile();
+        if ($screenFile === null) {
+            return self::FAILURE;
+        }
 
-         $screenData = json_decode(File::get($screenFile), true);
-         if (!is_array($screenData)) {
-             error("Screen file is not valid JSON: {$screenFile}");
-             return self::FAILURE;
-         }
+        $screenData = json_decode(File::get($screenFile), true);
+        if (! is_array($screenData)) {
+            error("Screen file is not valid JSON: {$screenFile}");
 
-         $runFile = $screenData['run_file'] ?? null;
-         if (!is_string($runFile) || $runFile === '') {
-             error('Screen file does not include run_file path.');
-             return self::FAILURE;
-         }
+            return self::FAILURE;
+        }
 
-         $resolvedRunFile = $this->normalizePath($runFile);
-         if (!File::exists($resolvedRunFile)) {
-             error("Run file not found: {$resolvedRunFile}");
-             return self::FAILURE;
-         }
+        $runFile = $screenData['run_file'] ?? null;
+        if (! is_string($runFile) || $runFile === '') {
+            error('Screen file does not include run_file path.');
 
-         $runData = json_decode(File::get($resolvedRunFile), true);
-         if (!is_array($runData)) {
-             error("Run file is not valid JSON: {$resolvedRunFile}");
-             return self::FAILURE;
-         }
+            return self::FAILURE;
+        }
 
-         $includedTitles = $this->includedTitles($screenData['decisions'] ?? []);
-         if ($includedTitles === []) {
-             warning('No included papers found in screen file.');
-             return self::SUCCESS;
-         }
+        $resolvedRunFile = $this->normalizePath($runFile);
+        if (! File::exists($resolvedRunFile)) {
+            error("Run file not found: {$resolvedRunFile}");
 
-         $runId = pathinfo($resolvedRunFile, PATHINFO_FILENAME);
-         $pdfDir = storage_path("pdfs/{$runId}");
-         if (!File::isDirectory($pdfDir)) {
-             File::makeDirectory($pdfDir, 0755, true);
-         }
+            return self::FAILURE;
+        }
 
-         $manifest = [];
-         foreach ($runData as $work) {
-             if (!is_array($work)) {
-                 continue;
-             }
+        $runData = json_decode(File::get($resolvedRunFile), true);
+        if (! is_array($runData)) {
+            error("Run file is not valid JSON: {$resolvedRunFile}");
 
-             $title = (string) ($work['title'] ?? '');
-             if ($title === '' || !isset($includedTitles[$title])) {
-                 continue;
-             }
+            return self::FAILURE;
+        }
 
-             $doi = $this->extractDoi($work['ids'] ?? []);
-             if ($doi === '') {
-                 $manifest[] = [
-                     'title' => $title,
-                     'status' => 'missing_doi',
-                 ];
-                 continue;
-             }
+        $includedTitles = $this->includedTitles($screenData['decisions'] ?? []);
+        if ($includedTitles === []) {
+            warning('No included papers found in screen file.');
 
-             $pdfUrl = $this->resolvePdfUrlFromOpenAlex($doi);
-             if ($pdfUrl === null) {
-                 warning("No PDF URL found for DOI: {$doi}");
-                 $manifest[] = [
-                     'title' => $title,
-                     'doi' => $doi,
-                     'status' => 'no_pdf_url',
-                 ];
-                 continue;
-             }
+            return self::SUCCESS;
+        }
 
-             $year = is_int($work['year'] ?? null) ? (int) $work['year'] : null;
-             $slug = $this->makeSlug($title, $year);
-             $pdfPath = "{$pdfDir}/{$slug}.pdf";
+        $runId = pathinfo($resolvedRunFile, PATHINFO_FILENAME);
+        $pdfDir = storage_path("pdfs/{$runId}");
+        if (! File::isDirectory($pdfDir)) {
+            File::makeDirectory($pdfDir, 0755, true);
+        }
 
-             $response = Http::get($pdfUrl);
-             if (!$response->successful()) {
-                 $manifest[] = [
-                     'title' => $title,
-                     'doi' => $doi,
-                     'status' => 'download_failed',
-                     'pdf_url' => $pdfUrl,
-                 ];
-                 continue;
-             }
+        $manifest = [];
+        foreach ($runData as $work) {
+            if (! is_array($work)) {
+                continue;
+            }
 
-             File::put($pdfPath, $response->body());
-             $manifest[] = [
-                 'title' => $title,
-                 'doi' => $doi,
-                 'status' => 'downloaded',
-                 'pdf_path' => $this->toRelativePath($pdfPath),
-                 'pdf_url' => $pdfUrl,
-             ];
-             info("Downloaded: {$pdfPath}");
-         }
+            $title = (string) ($work['title'] ?? '');
+            if ($title === '' || ! isset($includedTitles[$title])) {
+                continue;
+            }
 
-         File::put("{$pdfDir}/manifest.json", json_encode($manifest, JSON_PRETTY_PRINT));
-         $this->line("Saved manifest: {$pdfDir}/manifest.json");
+            $doi = $this->extractDoi($work['ids'] ?? []);
+            if ($doi === '') {
+                $manifest[] = [
+                    'title' => $title,
+                    'status' => 'missing_doi',
+                ];
 
-         return self::SUCCESS;
+                continue;
+            }
+
+            $pdfUrl = $this->resolvePdfUrlFromOpenAlex($doi);
+            if ($pdfUrl === null) {
+                warning("No PDF URL found for DOI: {$doi}");
+                $manifest[] = [
+                    'title' => $title,
+                    'doi' => $doi,
+                    'status' => 'no_pdf_url',
+                ];
+
+                continue;
+            }
+
+            $year = is_int($work['year'] ?? null) ? (int) $work['year'] : null;
+            $slug = $this->makeSlug($title, $year);
+            $pdfPath = "{$pdfDir}/{$slug}.pdf";
+
+            $response = Http::get($pdfUrl);
+            if (! $response->successful()) {
+                $manifest[] = [
+                    'title' => $title,
+                    'doi' => $doi,
+                    'status' => 'download_failed',
+                    'pdf_url' => $pdfUrl,
+                ];
+
+                continue;
+            }
+
+            File::put($pdfPath, $response->body());
+            $manifest[] = [
+                'title' => $title,
+                'doi' => $doi,
+                'status' => 'downloaded',
+                'pdf_path' => $this->toRelativePath($pdfPath),
+                'pdf_url' => $pdfUrl,
+            ];
+            info("Downloaded: {$pdfPath}");
+        }
+
+        File::put("{$pdfDir}/manifest.json", json_encode($manifest, JSON_PRETTY_PRINT));
+        $this->line("Saved manifest: {$pdfDir}/manifest.json");
+
+        return self::SUCCESS;
     }
 
     private function resolveScreenFile(): ?string
@@ -138,8 +146,9 @@ class NexusFetchPdfs extends Command
         $screenArg = $this->argument('screen');
         if ($screenArg) {
             $screenPath = $this->normalizePath($screenArg);
-            if (!File::exists($screenPath)) {
+            if (! File::exists($screenPath)) {
                 error("Screen file not found: {$screenPath}");
+
                 return null;
             }
 
@@ -147,22 +156,25 @@ class NexusFetchPdfs extends Command
         }
 
         $latestPointer = storage_path('runs/latest.json');
-        if (!File::exists($latestPointer)) {
+        if (! File::exists($latestPointer)) {
             error('latest.json pointer not found. Run nexus:search or pass a screen file path.');
+
             return null;
         }
 
         $latest = json_decode(File::get($latestPointer), true);
         $latestFile = $latest['file'] ?? null;
-        if (!is_string($latestFile) || $latestFile === '') {
+        if (! is_string($latestFile) || $latestFile === '') {
             error('latest.json pointer is invalid.');
+
             return null;
         }
 
         $runId = pathinfo($latestFile, PATHINFO_FILENAME);
         $screenPath = storage_path("screens/{$runId}.json");
-        if (!File::exists($screenPath)) {
+        if (! File::exists($screenPath)) {
             error("Screen file not found: {$screenPath}");
+
             return null;
         }
 
@@ -173,7 +185,7 @@ class NexusFetchPdfs extends Command
     {
         $titles = [];
         foreach ($decisions as $decision) {
-            if (!is_array($decision)) {
+            if (! is_array($decision)) {
                 continue;
             }
             if (($decision['included'] ?? false) === true && isset($decision['title'])) {
@@ -187,7 +199,7 @@ class NexusFetchPdfs extends Command
     private function extractDoi(array $ids): string
     {
         foreach ($ids as $id) {
-            if (!is_array($id)) {
+            if (! is_array($id)) {
                 continue;
             }
 
@@ -205,12 +217,12 @@ class NexusFetchPdfs extends Command
         $url = "https://api.openalex.org/works/{$encoded}";
 
         $response = Http::get($url);
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return null;
         }
 
         $data = $response->json();
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             return null;
         }
 
@@ -256,4 +268,3 @@ class NexusFetchPdfs extends Command
         return $path;
     }
 }
-

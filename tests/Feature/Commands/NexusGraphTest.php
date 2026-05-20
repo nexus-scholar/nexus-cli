@@ -92,7 +92,7 @@ test('builds and saves citation graph from run JSON relationships', function () 
 
     $payload = json_decode(File::get($outputFile), true);
     $edges = array_map(
-        fn (array $edge): string => $edge['citing'] . '->' . $edge['cited'],
+        fn (array $edge): string => $edge['citing'].'->'.$edge['cited'],
         $payload['graph']['edges'],
     );
 

@@ -31,7 +31,7 @@ afterEach(function () {
 function writeJson(string $path, array $payload): void
 {
     $dir = dirname($path);
-    if (!File::isDirectory($dir)) {
+    if (! File::isDirectory($dir)) {
         File::makeDirectory($dir, 0755, true);
     }
     File::put($path, json_encode($payload, JSON_PRETTY_PRINT));
@@ -76,4 +76,3 @@ test('downloads pdfs for included titles', function () {
     $this->createdPaths[] = $manifest;
     $this->createdPaths[] = "{$this->pdfsDir}/all_20260506_000000";
 });
-
