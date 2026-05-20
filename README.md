@@ -13,7 +13,8 @@ This repository is currently a project-style CLI app, not a Composer library. It
 | `php artisan nexus:run-stats` | Print summary statistics for a run JSON file or `storage/runs/latest.json`. |
 | `php artisan nexus:ingest` | Convert run JSON records into local paper pages. |
 | `php artisan nexus:screen` | Apply deterministic and optional LLM-assisted screening criteria and write `storage/screens/{run_id}.json`. |
-| `php artisan nexus:fetch-pdfs` | Fetch PDFs for included papers and write `storage/pdfs/{run_id}`. |
+| `php artisan nexus:fetch-full-text` | Retrieve legal open-access full text for included papers through `nexus-scholar/core`. |
+| `php artisan nexus:fetch-pdfs` | Backward-compatible alias for full-text retrieval. |
 | `php artisan nexus:graph` | Build and analyze citation graphs from run JSON relationships. |
 | `php artisan nexus:status` | Print local workspace status and latest run information. |
 
@@ -99,14 +100,22 @@ php artisan nexus:screen --allow-empty-include
 php artisan nexus:screen --max-llm=25
 ```
 
-## PDF Fetching
+## Full Text Retrieval
 
 ```powershell
-php artisan nexus:fetch-pdfs
-php artisan nexus:fetch-pdfs storage/screens/all_20260520_120000.json
+php artisan nexus:fetch-full-text
+php artisan nexus:fetch-full-text storage/screens/all_20260520_120000.json
+php artisan nexus:fetch-full-text storage/screens/all_20260520_120000.json --destination=full-text/my-run
 ```
 
-Current limitation: this command still uses app-owned PDF lookup/download logic and should be replaced by the legal open-access full-text retrieval pipeline in `nexus-scholar/core`. Treat it as a compatibility workflow until that integration slice lands.
+The legacy `nexus:fetch-pdfs` command remains available for older workflows, but both command names now delegate to the `nexus-scholar/core` full-text retrieval pipeline. They can store validated PDFs and supported XML/text artifacts from configured legal open-access sources such as direct run metadata URLs, Unpaywall, PMC, Europe PMC, arXiv, OpenAlex metadata PDF URLs, and Semantic Scholar metadata PDF URLs.
+
+Artifacts and `manifest.json` are written to the configured Laravel storage disk under `full-text/{run_id}` by default. Configure the disk and source settings in `.env`:
+
+```powershell
+NEXUS_FULL_TEXT_DISK=public
+NEXUS_UNPAYWALL_EMAIL=you@example.com
+```
 
 ## Graph Workflow
 
@@ -147,7 +156,6 @@ The test suite uses fake HTTP clients and fixtures where possible. CI should not
 
 Before treating this CLI as production-ready:
 
-- Add commands for `core` export history, full-text retrieval, snowballing, lock/unlock, and job progress.
-- Replace `nexus:fetch-pdfs` with `core` full-text retrieval.
+- Add commands for `core` export history, snowballing, lock/unlock, and job progress.
 - Add end-to-end tests for search -> screen -> full text -> graph -> export.
 - Decide whether this remains a project template or becomes an installable CLI package.

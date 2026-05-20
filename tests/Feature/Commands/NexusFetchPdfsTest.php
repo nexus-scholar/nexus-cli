@@ -1,16 +1,32 @@
 <?php
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Nexus\Dissemination\Domain\Port\DownloadResult;
+use Nexus\Dissemination\Domain\Port\FullTextSourceCollection;
+use Nexus\Dissemination\Domain\Port\PdfDownloaderPort;
+use Nexus\Dissemination\Infrastructure\PdfSource\DirectPdfSource;
 
 beforeEach(function () {
-    Http::preventStrayRequests();
+    $this->artisan('migrate:fresh')->run();
+
     $this->runsDir = storage_path('runs');
     $this->screensDir = storage_path('screens');
-    $this->pdfsDir = storage_path('pdfs');
 
     $this->createdPaths = [];
+
+    Storage::fake('public');
+    config(['nexus.dissemination.pdf_storage_disk' => 'public']);
+    app()->instance(FullTextSourceCollection::class, new FullTextSourceCollection(new DirectPdfSource));
+    app()->instance(PdfDownloaderPort::class, new class implements PdfDownloaderPort
+    {
+        public function download(string $url): DownloadResult
+        {
+            return new DownloadResult('%PDF-1.4 test', 200, 'application/pdf');
+        }
+    });
 
     Carbon::setTestNow('2026-05-06 00:00:00');
 });
@@ -25,7 +41,6 @@ afterEach(function () {
     }
 
     Carbon::setTestNow();
-    Http::preventStrayRequests();
 });
 
 function writeJson(string $path, array $payload): void
@@ -37,19 +52,21 @@ function writeJson(string $path, array $payload): void
     File::put($path, json_encode($payload, JSON_PRETTY_PRINT));
 }
 
-test('downloads pdfs for included titles', function () {
-    Http::fake([
-        'https://api.openalex.org/works/*' => Http::response([
-            'open_access' => ['oa_url' => 'https://example.org/paper.pdf'],
-        ], 200),
-        'https://example.org/paper.pdf' => Http::response('%PDF-1.4 test', 200),
-    ]);
-
+test('retrieves full text for included titles', function (string $command) {
     $runFile = "{$this->runsDir}/all_20260506_000000.json";
     writeJson($runFile, [[
-        'title' => 'Tomato instance segmentation study',
-        'year' => 2024,
         'ids' => [['ns' => 'doi', 'val' => '10.1234/abc']],
+        'title' => 'Tomato instance segmentation study',
+        'authors' => [],
+        'year' => 2024,
+        'venue' => null,
+        'abstract' => 'A full-text retrieval test paper.',
+        'citedByCount' => 3,
+        'isRetracted' => false,
+        'sourceProvider' => 'test',
+        'rawData' => [
+            'direct_pdf_url' => 'https://example.org/paper.pdf',
+        ],
     ]]);
     $this->createdPaths[] = $runFile;
     $this->createdPaths[] = $this->runsDir;
@@ -64,15 +81,26 @@ test('downloads pdfs for included titles', function () {
     $this->createdPaths[] = $screenFile;
     $this->createdPaths[] = $this->screensDir;
 
-    $this->artisan('nexus:fetch-pdfs', ['screen' => $screenFile])
+    $this->artisan($command, ['screen' => $screenFile])
         ->assertExitCode(0);
 
-    $pdfPath = "{$this->pdfsDir}/all_20260506_000000/tomato-instance-segmentation-study-2024.pdf";
-    expect(File::exists($pdfPath))->toBeTrue();
-    $this->createdPaths[] = $pdfPath;
+    $files = Storage::disk('public')->allFiles('full-text/all_20260506_000000');
+    expect($files)->toHaveCount(2);
 
-    $manifest = "{$this->pdfsDir}/all_20260506_000000/manifest.json";
-    expect(File::exists($manifest))->toBeTrue();
-    $this->createdPaths[] = $manifest;
-    $this->createdPaths[] = "{$this->pdfsDir}/all_20260506_000000";
-});
+    $pdfPath = collect($files)->first(fn (string $file): bool => str_ends_with($file, '.pdf'));
+    expect($pdfPath)->not->toBeNull();
+
+    $manifestPath = 'full-text/all_20260506_000000/manifest.json';
+    expect(Storage::disk('public')->exists($manifestPath))->toBeTrue();
+
+    $manifest = json_decode(Storage::disk('public')->get($manifestPath), true);
+    expect($manifest)
+        ->toHaveCount(1)
+        ->and($manifest[0]['status'])->toBe('success')
+        ->and($manifest[0]['source_alias'])->toBe('direct')
+        ->and($manifest[0]['artifact_path'])->toBe($pdfPath)
+        ->and(DB::table('pdf_fetches')->where('status', 'success')->count())->toBe(1);
+})->with([
+    'preferred command' => 'nexus:fetch-full-text',
+    'legacy command' => 'nexus:fetch-pdfs',
+]);
