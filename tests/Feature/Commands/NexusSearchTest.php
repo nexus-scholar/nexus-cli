@@ -1,6 +1,7 @@
 <?php
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -201,8 +202,10 @@ test('writes per-query run and latest pointer using dto payloads', function () {
 
     bindAggregator($result);
 
-    $this->artisan('nexus:search', ['--id' => 'tomato'])
-        ->assertExitCode(0);
+    $exitCode = Artisan::call('nexus:search', ['--id' => 'tomato']);
+    if ($exitCode !== 0) {
+        throw new RuntimeException(Artisan::output());
+    }
 
     $runFile = "{$this->runsDir}/tomato_20260505_000738.json";
     $latestPointer = "{$this->runsDir}/latest.json";
@@ -230,6 +233,40 @@ test('writes per-query run and latest pointer using dto payloads', function () {
     $latestPayload = json_decode(File::get($latestPointer), true);
     expect($latestPayload['file'])->toBe('storage/runs/tomato_20260505_000738.json');
     expect($latestPayload['run_at'])->toBe(Carbon::now()->toIso8601String());
+});
+
+test('passes YAML provider aliases into the core search command', function () {
+    writeQueriesFile($this->queriesPath, [
+        [
+            'id' => 'tomato',
+            'label' => 'Tomato',
+            'query' => 'tomato segmentation',
+            'providers' => ['openalex', 'arxiv', 'openalex'],
+        ],
+    ]);
+
+    $received = (object) ['providers' => null];
+
+    bindAggregator(function (SearchQuery $query) use ($received): AggregatedResult {
+        $received->providers = property_exists($query, 'providerAliases') ? $query->providerAliases : [];
+
+        return new AggregatedResult(
+            corpus: CorpusSlice::empty(),
+            providerStats: [],
+            totalRaw: 0
+        );
+    });
+
+    $exitCode = Artisan::call('nexus:search', ['--id' => 'tomato']);
+    if ($exitCode !== 0) {
+        throw new RuntimeException(Artisan::output());
+    }
+
+    $constructor = new ReflectionMethod(\Nexus\Search\Application\UseCase\SearchAcrossProviders::class, '__construct');
+    $supportsProviderAliases = collect($constructor->getParameters())
+        ->contains(fn (ReflectionParameter $parameter): bool => $parameter->getName() === 'providerAliases');
+
+    expect($received->providers)->toBe($supportsProviderAliases ? ['openalex', 'arxiv'] : []);
 });
 
 test('writes global deduped master when running all queries', function () {

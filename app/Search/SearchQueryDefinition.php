@@ -8,6 +8,7 @@ final readonly class SearchQueryDefinition
 {
     /**
      * @param  array<string, mixed>  $metadata
+     * @param  list<string>  $providerAliases
      */
     public function __construct(
         public string $id,
@@ -19,7 +20,24 @@ final readonly class SearchQueryDefinition
         public ?string $includeTitleAbstract,
         public ?string $excludeTitleAbstract,
         public array $metadata,
+        public array $providerAliases = [],
     ) {}
+
+    public static function fromCoreItem(object $item): self
+    {
+        return new self(
+            id: (string) $item->id,
+            label: (string) $item->label,
+            query: (string) $item->query,
+            maxResults: (int) $item->maxResults,
+            yearFrom: $item->yearFrom,
+            yearTo: $item->yearTo,
+            includeTitleAbstract: $item->includeTitleAbstract,
+            excludeTitleAbstract: $item->excludeTitleAbstract,
+            metadata: $item->metadata,
+            providerAliases: $item->providerAliases,
+        );
+    }
 
     /**
      * @param  array<string, mixed>  $rawSearch
@@ -52,18 +70,25 @@ final readonly class SearchQueryDefinition
             includeTitleAbstract: self::nullableString($rawSearch['include_title_abstract'] ?? null),
             excludeTitleAbstract: self::nullableString($rawSearch['exclude_title_abstract'] ?? null),
             metadata: $metadata,
+            providerAliases: self::providerAliases($rawSearch['providers'] ?? []),
         );
     }
 
     public function toCoreCommand(string $projectId): SearchAcrossProviders
     {
-        return new SearchAcrossProviders(
-            query: $this->query,
-            projectId: $projectId,
-            maxResults: $this->maxResults,
-            yearFrom: $this->yearFrom,
-            yearTo: $this->yearTo,
-        );
+        $arguments = [
+            'query' => $this->query,
+            'projectId' => $projectId,
+            'maxResults' => $this->maxResults,
+            'yearFrom' => $this->yearFrom,
+            'yearTo' => $this->yearTo,
+        ];
+
+        if (self::coreCommandAcceptsProviderAliases()) {
+            $arguments['providerAliases'] = $this->providerAliases;
+        }
+
+        return new SearchAcrossProviders(...$arguments);
     }
 
     /**
@@ -93,6 +118,10 @@ final readonly class SearchQueryDefinition
             $metadata['exclude_title_abstract'] = $this->excludeTitleAbstract;
         }
 
+        if ($this->providerAliases !== []) {
+            $metadata['providers'] = $this->providerAliases;
+        }
+
         return $metadata;
     }
 
@@ -114,5 +143,45 @@ final readonly class SearchQueryDefinition
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function providerAliases(mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        $aliases = is_array($value) ? $value : explode(',', (string) $value);
+        $normalized = [];
+
+        foreach ($aliases as $alias) {
+            if (! is_scalar($alias)) {
+                continue;
+            }
+
+            $alias = strtolower(trim((string) $alias));
+
+            if ($alias !== '') {
+                $normalized[$alias] = $alias;
+            }
+        }
+
+        return array_values($normalized);
+    }
+
+    private static function coreCommandAcceptsProviderAliases(): bool
+    {
+        $constructor = new \ReflectionMethod(SearchAcrossProviders::class, '__construct');
+
+        foreach ($constructor->getParameters() as $parameter) {
+            if ($parameter->getName() === 'providerAliases') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

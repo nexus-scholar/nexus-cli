@@ -13,6 +13,13 @@ final class SearchPlanLoader
             throw new \RuntimeException("Queries file not found at: {$path}");
         }
 
+        $coreParserClass = 'Nexus\\Search\\Infrastructure\\Plan\\YamlSearchPlanParser';
+        if (class_exists($coreParserClass)) {
+            $corePlan = app($coreParserClass)->parseFile($path);
+
+            return SearchPlan::fromCorePlan($corePlan, $path);
+        }
+
         $yaml = Yaml::parseFile($path);
         if (! is_array($yaml)) {
             throw new \RuntimeException("Queries file is not valid YAML: {$path}");

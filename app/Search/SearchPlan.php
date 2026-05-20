@@ -18,6 +18,18 @@ final readonly class SearchPlan
         return $this->queries === [];
     }
 
+    public static function fromCorePlan(object $corePlan, string $sourcePath): self
+    {
+        return new self(
+            sourcePath: $sourcePath,
+            projectId: (string) $corePlan->projectId,
+            queries: array_map(
+                static fn (object $item): SearchQueryDefinition => SearchQueryDefinition::fromCoreItem($item),
+                $corePlan->items,
+            ),
+        );
+    }
+
     /**
      * @return list<SearchQueryDefinition>
      */

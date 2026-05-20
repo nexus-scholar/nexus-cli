@@ -60,7 +60,7 @@ class NexusSearch extends Command
             $report = $runs->run(
                 plan: $plan,
                 selection: $selection,
-                handler: $handler,
+                executor: $this->searchExecutor($handler),
                 projectIdOverride: $projectId,
                 onQueryCompleted: fn ($queryRun, $current, $total) => $renderer->renderQueryRun(
                     $this,
@@ -78,6 +78,15 @@ class NexusSearch extends Command
         $renderer->renderFinished($this, $report);
 
         return self::SUCCESS;
+    }
+
+    private function searchExecutor(SearchAcrossProvidersHandler $fallback): object
+    {
+        $executorPort = 'Nexus\\Search\\Application\\Port\\SearchExecutorPort';
+
+        return interface_exists($executorPort) && app()->bound($executorPort)
+            ? app($executorPort)
+            : $fallback;
     }
 
     private function resolveQueriesPath(): string

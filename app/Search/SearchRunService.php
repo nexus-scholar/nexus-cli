@@ -2,7 +2,6 @@
 
 namespace App\Search;
 
-use Nexus\Search\Application\UseCase\SearchAcrossProvidersHandler;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\ScholarlyWork;
 
@@ -19,7 +18,7 @@ final class SearchRunService
     public function run(
         SearchPlan $plan,
         SearchSelection $selection,
-        SearchAcrossProvidersHandler $handler,
+        object $executor,
         ?string $projectIdOverride = null,
         ?string $timestamp = null,
         ?callable $onQueryCompleted = null,
@@ -36,7 +35,7 @@ final class SearchRunService
             $coreCommand = $query->toCoreCommand($projectId);
 
             $startedAt = microtime(true);
-            $result = $handler->handle($coreCommand);
+            $result = $executor->handle($coreCommand);
             $elapsedMs = $result->durationMs > 0
                 ? $result->durationMs
                 : (int) round((microtime(true) - $startedAt) * 1000);
