@@ -1,0 +1,411 @@
+version: 4
+project: tomatomap_label_efficient_instance_segmentation
+
+# Query plan for the TomatoMAP PhD research direction.
+#
+# Research framing:
+# - TomatoMAP / tomato image benchmark work.
+# - Tomato instance segmentation for plants, fruits, leaves, and diseases.
+# - Label-efficient segmentation: low-label, weakly supervised, semi-supervised,
+#   pseudo-label, active-learning, SAM-assisted, and annotation-efficient methods.
+# - Manual CLI examples:
+#
+#   php artisan nexus:search --file=queries/tomatomap-label-efficient-instance-segmentation.yml --id=TMAP_CORE01
+#   php artisan nexus:search --file=queries/tomatomap-label-efficient-instance-segmentation.yml --all
+#   php artisan nexus:search --file=queries/tomatomap-label-efficient-instance-segmentation.yml --all --project=tomatomap_label_efficiency
+#
+# Provider notes:
+# - OpenAlex and Crossref are the stable no-key defaults for manual testing.
+# - Add Semantic Scholar later if you want broader citation graph metadata and
+#   can tolerate rate limits or configure NEXUS_S2_API_KEY.
+# - include_raw_data=true helps later full-text and graph commands.
+
+providers:
+  - openalex
+  - crossref
+
+include_raw_data: true
+
+searches:
+
+  # -------------------------------------------------------------------------
+  # Track A: TomatoMAP and tomato-specific instance segmentation
+  # -------------------------------------------------------------------------
+
+  - id: TMAP_CORE01
+    label: TMAP_CORE01
+    query: >
+      (TomatoMAP OR "tomato map" OR "multi-angle" OR "multi-pose")
+      AND (tomato OR greenhouse OR phenotyping)
+    year_from: 2021
+    limit: 50
+    metadata:
+      theme: tomatomap_dataset_benchmark
+      priority: high
+    include_title_abstract: >
+      Include if the paper presents, uses, evaluates, or discusses TomatoMAP or
+      a similar multi-angle, multi-pose tomato image dataset or tomato
+      phenotyping benchmark.
+    exclude_title_abstract: >
+      Exclude if "multi-angle" or "multi-pose" refers to a non-tomato setting
+      such as human pose, generic objects, robotics pose estimation, or medical
+      imaging with no tomato or greenhouse phenotyping component.
+
+  - id: TOM_SEG01
+    label: TOM_SEG01
+    query: >
+      tomato AND "instance segmentation"
+      AND (fruit OR plant OR leaf OR greenhouse OR phenotyping)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: tomato_instance_segmentation
+      priority: high
+    include_title_abstract: >
+      Include if the study performs instance segmentation on tomato fruits,
+      plants, leaves, diseases, trusses, seedlings, or greenhouse tomato imagery
+      and reports mask-level or instance-level results.
+    exclude_title_abstract: >
+      Exclude if tomato is only a classification, yield, supply-chain, or
+      non-vision topic, or if the task is object detection only with no instance
+      masks or segmentation output.
+
+  - id: TOM_YOLOSEG01
+    label: TOM_YOLOSEG01
+    query: >
+      tomato AND (YOLOv8-seg OR "YOLO segmentation" OR "YOLOv8 segmentation")
+      AND (fruit OR plant OR disease OR greenhouse)
+    year_from: 2021
+    limit: 60
+    metadata:
+      theme: tomato_yolo_segmentation
+      priority: high
+    include_title_abstract: >
+      Include if the paper uses YOLO segmentation variants such as YOLOv8-Seg,
+      YOLO11-seg, or similar YOLO-based instance segmentation models for tomato
+      fruit, plant, disease, leaf, or greenhouse imagery.
+    exclude_title_abstract: >
+      Exclude YOLO object detection papers without segmentation masks, and
+      exclude non-tomato YOLO segmentation studies unless they are directly
+      transferable to plant or crop instance segmentation.
+
+  - id: TOM_DISEASE01
+    label: TOM_DISEASE01
+    query: >
+      tomato AND (disease OR leaf OR fruit)
+      AND ("instance segmentation" OR "semantic segmentation")
+    year_from: 2020
+    limit: 60
+    metadata:
+      theme: tomato_disease_leaf_fruit_segmentation
+      priority: medium
+    include_title_abstract: >
+      Include if the paper segments tomato disease symptoms, leaves, fruits, or
+      plant organs and provides segmentation outputs useful for tomato
+      phenotyping or dataset/baseline comparison.
+    exclude_title_abstract: >
+      Exclude pure image classification or detection papers without pixel-level,
+      mask-level, or segmentation output.
+
+  # -------------------------------------------------------------------------
+  # Track B: Agricultural and plant instance segmentation benchmarks
+  # -------------------------------------------------------------------------
+
+  - id: AG_INST01
+    label: AG_INST01
+    query: >
+      "instance segmentation"
+      AND (agriculture OR crop OR plant OR fruit OR phenotyping)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: agricultural_instance_segmentation
+      priority: high
+    include_title_abstract: >
+      Include if the paper applies or benchmarks instance segmentation in
+      agriculture, plant phenotyping, fruit counting, greenhouse imaging, crop
+      monitoring, or plant organ segmentation.
+    exclude_title_abstract: >
+      Exclude non-agricultural instance segmentation unless it is explicitly
+      framed as transferable to low-label or agricultural vision problems.
+
+  - id: AG_BENCH01
+    label: AG_BENCH01
+    query: >
+      ("plant phenotyping" OR agriculture OR crop)
+      AND (dataset OR benchmark)
+      AND ("instance segmentation" OR segmentation)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: plant_segmentation_datasets_benchmarks
+      priority: high
+    include_title_abstract: >
+      Include if the paper introduces, evaluates, or uses plant/agriculture
+      segmentation datasets or benchmarks, especially for instance masks,
+      organ-level masks, fruit segmentation, or phenotyping.
+    exclude_title_abstract: >
+      Exclude datasets for non-image traits, genomics, tabular agronomy, or
+      classification-only plant tasks with no segmentation relevance.
+
+  - id: AG_SMALL01
+    label: AG_SMALL01
+    query: >
+      ("small object" OR occlusion OR dense)
+      AND (fruit OR tomato OR plant)
+      AND (segmentation OR detection)
+    year_from: 2020
+    limit: 60
+    metadata:
+      theme: small_occluded_fruit_segmentation
+      priority: medium
+    include_title_abstract: >
+      Include if the paper addresses small, dense, overlapping, occluded, or
+      cluttered plant/fruit/tomato objects in segmentation or detection,
+      especially where instance separation is difficult.
+    exclude_title_abstract: >
+      Exclude papers about generic small-object detection with no plant,
+      tomato, fruit, crop, or agricultural relevance.
+
+  # -------------------------------------------------------------------------
+  # Track C: Label efficiency and low-label training
+  # -------------------------------------------------------------------------
+
+  - id: LE_AGRI01
+    label: LE_AGRI01
+    query: >
+      ("label-efficient" OR "annotation-efficient" OR "low-label")
+      AND (segmentation OR detection)
+      AND (agriculture OR plant OR crop OR tomato)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: label_efficient_agricultural_vision
+      priority: high
+    include_title_abstract: >
+      Include if the paper reduces annotation cost or labeled sample count for
+      agricultural, plant, crop, tomato, fruit, weed, or phenotyping
+      segmentation/detection.
+    exclude_title_abstract: >
+      Exclude if label efficiency is about non-vision data, runtime efficiency,
+      or classification-only work with no segmentation/detection relevance.
+
+  - id: LE_INST01
+    label: LE_INST01
+    query: >
+      ("label-efficient" OR "annotation-efficient" OR "few-shot")
+      AND "instance segmentation"
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: label_efficient_instance_segmentation
+      priority: high
+    include_title_abstract: >
+      Include if the core method performs instance segmentation with fewer
+      labels, sparse labels, few shots, weaker annotations, or reduced
+      annotation cost, even outside agriculture.
+    exclude_title_abstract: >
+      Exclude if efficiency refers only to inference speed, model size, or memory
+      use rather than label or annotation cost.
+
+  - id: LE_ACTIVE01
+    label: LE_ACTIVE01
+    query: >
+      "active learning"
+      AND ("instance segmentation" OR segmentation OR detection)
+      AND (annotation OR labeling)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: active_learning_annotation_selection
+      priority: medium
+    include_title_abstract: >
+      Include if the paper uses active learning to select which images,
+      instances, masks, boxes, or regions should be annotated for segmentation
+      or detection.
+    exclude_title_abstract: >
+      Exclude active learning for classification-only, NLP, recommender systems,
+      or non-image tasks unless the method is directly reusable for segmentation
+      annotation selection.
+
+  # -------------------------------------------------------------------------
+  # Track D: Semi-supervised and weakly supervised segmentation
+  # -------------------------------------------------------------------------
+
+  - id: SSL_AGRI01
+    label: SSL_AGRI01
+    query: >
+      "semi-supervised"
+      AND (segmentation OR "instance segmentation")
+      AND (agriculture OR plant OR crop OR tomato)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: semi_supervised_agricultural_segmentation
+      priority: high
+    include_title_abstract: >
+      Include if the paper uses semi-supervised learning for segmentation or
+      instance segmentation in agriculture, plant phenotyping, crop monitoring,
+      tomato imagery, weed imagery, fruit segmentation, or greenhouse vision.
+    exclude_title_abstract: >
+      Exclude semi-supervised classification-only papers and non-image work. Also
+      exclude generic segmentation papers unless their method clearly addresses
+      label scarcity in a way transferable to TomatoMAP.
+
+  - id: SSL_INST01
+    label: SSL_INST01
+    query: >
+      "semi-supervised" AND "instance segmentation"
+      AND (pseudo-label OR "teacher-student" OR consistency)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: semi_supervised_instance_segmentation_methods
+      priority: high
+    include_title_abstract: >
+      Include if the paper proposes or evaluates semi-supervised instance
+      segmentation using pseudo-labels, teacher-student training, consistency,
+      self-training, or unlabeled images.
+    exclude_title_abstract: >
+      Exclude semantic segmentation only if there are no instance masks or no
+      clear transfer value for instance segmentation.
+
+  - id: WS_INST01
+    label: WS_INST01
+    query: >
+      ("weakly supervised" OR "box-supervised" OR "box supervised")
+      AND "instance segmentation"
+      AND (plant OR crop OR agriculture OR tomato)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: weak_box_supervised_instance_segmentation
+      priority: high
+    include_title_abstract: >
+      Include if the paper uses boxes, points, scribbles, image labels, clicks,
+      or other weak labels to train instance segmentation for plant, crop,
+      tomato, agriculture, or transferable low-annotation settings.
+    exclude_title_abstract: >
+      Exclude fully supervised segmentation unless it is used as a baseline for
+      weak-label or box-supervised instance segmentation.
+
+  - id: PLABEL01
+    label: PLABEL01
+    query: >
+      ("pseudo-label" OR "pseudo label" OR self-training)
+      AND segmentation
+      AND (plant OR crop OR agriculture OR tomato)
+    year_from: 2020
+    limit: 75
+    metadata:
+      theme: pseudo_label_agricultural_segmentation
+      priority: high
+    include_title_abstract: >
+      Include if the paper uses pseudo-labels or self-training for segmentation,
+      instance segmentation, detection-to-mask training, or label-efficient
+      agricultural/plant/crop/tomato vision.
+    exclude_title_abstract: >
+      Exclude pseudo-labeling papers about classification-only, text, speech, or
+      domains with no image segmentation/detection transfer value.
+
+  # -------------------------------------------------------------------------
+  # Track E: Foundation models and automatic mask generation
+  # -------------------------------------------------------------------------
+
+  - id: SAM_AGRI01
+    label: SAM_AGRI01
+    query: >
+      ("Segment Anything" OR SAM)
+      AND (agriculture OR plant OR crop OR tomato OR phenotyping)
+    year_from: 2023
+    limit: 75
+    metadata:
+      theme: segment_anything_agriculture
+      priority: high
+    include_title_abstract: >
+      Include if the paper evaluates, adapts, fine-tunes, or applies Segment
+      Anything or SAM-style foundation models to plant, crop, tomato,
+      phenotyping, or agricultural image segmentation.
+    exclude_title_abstract: >
+      Exclude generic SAM surveys or non-agricultural SAM applications unless
+      they contribute an annotation or pseudo-labeling method directly reusable
+      for TomatoMAP.
+
+  - id: SAM_LABEL01
+    label: SAM_LABEL01
+    query: >
+      ("Segment Anything" OR SAM)
+      AND ("pseudo-label" OR "auto-label" OR "mask generation" OR annotation)
+    year_from: 2023
+    limit: 75
+    metadata:
+      theme: sam_auto_labeling_mask_generation
+      priority: high
+    include_title_abstract: >
+      Include if SAM is used to generate masks, accelerate annotation, create
+      pseudo-labels, or support low-label segmentation training.
+    exclude_title_abstract: >
+      Exclude papers where SAM is only used as a visual demo or standalone tool
+      with no learning, annotation, pseudo-label, or dataset-building relevance.
+
+  - id: FM_ZEROSHOT01
+    label: FM_ZEROSHOT01
+    query: >
+      ("zero-shot" OR "open-vocabulary" OR "foundation model")
+      AND "instance segmentation"
+      AND (plant OR crop OR agriculture)
+    year_from: 2023
+    limit: 60
+    metadata:
+      theme: zero_shot_foundation_segmentation
+      priority: medium
+    include_title_abstract: >
+      Include if the paper uses zero-shot, open-vocabulary, prompt-based, or
+      foundation-model instance segmentation for plants, crops, agriculture, or
+      phenotyping.
+    exclude_title_abstract: >
+      Exclude generic zero-shot recognition or classification papers without
+      instance masks or segmentation output.
+
+  # -------------------------------------------------------------------------
+  # Track F: Baseline model families for TomatoMAP
+  # -------------------------------------------------------------------------
+
+  - id: BASE_MRCNN01
+    label: BASE_MRCNN01
+    query: >
+      "Mask R-CNN"
+      AND (tomato OR plant OR crop OR fruit OR phenotyping)
+      AND segmentation
+    year_from: 2017
+    limit: 60
+    metadata:
+      theme: mask_rcnn_agricultural_baselines
+      priority: medium
+    include_title_abstract: >
+      Include if the paper uses Mask R-CNN or a direct variant for plant, tomato,
+      fruit, crop, leaf, disease, or phenotyping segmentation/detection,
+      especially as a supervised baseline.
+    exclude_title_abstract: >
+      Exclude non-agricultural Mask R-CNN papers unless they are methodological
+      baselines directly relevant to instance segmentation under limited labels.
+
+  - id: BASE_TRANS01
+    label: BASE_TRANS01
+    query: >
+      (Mask2Former OR "Swin Transformer" OR transformer)
+      AND "instance segmentation"
+      AND (plant OR crop OR agriculture)
+    year_from: 2021
+    limit: 60
+    metadata:
+      theme: transformer_segmentation_baselines
+      priority: low
+    include_title_abstract: >
+      Include if the paper uses transformer-based segmentation models such as
+      Mask2Former, Swin-based segmentation, or related architectures for plant,
+      crop, agriculture, or phenotyping instance segmentation.
+    exclude_title_abstract: >
+      Exclude generic transformer segmentation papers without agricultural
+      relevance unless they are strong baseline candidates for future TomatoMAP
+      journal extensions.
