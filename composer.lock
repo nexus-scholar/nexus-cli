@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1facc6521624a6206b4e8340f640720e",
+    "content-hash": "daffb80f2baf3db9e3371981ad330beb",
     "packages": [
         {
             "name": "brick/math",
@@ -2100,14 +2100,14 @@
         },
         {
             "name": "mbsoft31/graph-algorithms",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "dist": {
                 "type": "path",
                 "url": "../graph-algorithms",
-                "reference": "e1e2b7630c35b60b14adf00cf1bb73485d1204f8"
+                "reference": "faa5161389062783188b1e1f43cc014b8dafe890"
             },
             "require": {
-                "mbsoft31/graph-core": "^1.0",
+                "nexus-scholar/graph-core": "^1.0",
                 "php": "^8.2"
             },
             "require-dev": {
@@ -2519,12 +2519,12 @@
             "dist": {
                 "type": "path",
                 "url": "../core",
-                "reference": "4ba15b113bfbdf8a41aa71ec42cb1de2940e643a"
+                "reference": "4fb4afa42e8b82388045c965234298b46027238c"
             },
             "require": {
                 "composer/ca-bundle": "^1.5",
                 "guzzlehttp/guzzle": "^7.8",
-                "mbsoft31/graph-algorithms": "^1.0",
+                "mbsoft31/graph-algorithms": "^1.1",
                 "nexus-scholar/graph-core": "^1.0",
                 "php": "^8.3",
                 "symfony/yaml": "^7.0 || ^8.0"
@@ -2590,7 +2590,7 @@
             "dist": {
                 "type": "path",
                 "url": "../graph-core",
-                "reference": "ea5eae39cf355089ba1ed208480a2bda873a7502"
+                "reference": "f55dd89c8c8faf9fbb554e0b94248c1ede2cb7bd"
             },
             "require": {
                 "ext-dom": "*",
