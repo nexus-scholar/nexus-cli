@@ -72,7 +72,7 @@ Council screening with three independent model attempts:
 php artisan nexus:screen `
   --project=tomatomap_label_efficiency `
   --mode=council `
-  --council-models="openai/gpt-4.1-mini,google/gemini-2.5-flash,anthropic/claude-3.5-haiku" `
+  --council-models="openai/gpt-4.1-mini,google/gemini-2.5-flash,mistralai/mistral-small-2603" `
   --include="crop image segmentation" `
   --include="label-efficient or semi-supervised visual recognition" `
   --exclude="medical imaging" `
@@ -80,6 +80,8 @@ php artisan nexus:screen `
   --max=3 `
   --name="TomatoMAP council smoke"
 ```
+
+Use council models that support OpenRouter structured outputs. The core screening client asks the provider for JSON schema-constrained output, so a model can be available on OpenRouter but still fail this command if it cannot route `response_format` requests. The current smoke-tested default set is OpenAI, Gemini, and Mistral.
 
 Useful filters:
 
