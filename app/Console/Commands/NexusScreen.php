@@ -5,6 +5,12 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Nexus\Screening\Application\UseCase\ScreenCorpusCommand;
+use Nexus\Screening\Application\UseCase\ScreenCorpusHandler;
+use Nexus\Screening\Domain\ScreeningCriteria;
+use Nexus\Screening\Domain\ScreeningRunMode;
+use Nexus\Screening\Domain\ScreeningStage;
+use Symfony\Component\Yaml\Yaml;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -17,7 +23,27 @@ class NexusScreen extends Command
      *
      * @var string
      */
-    protected $signature = 'nexus:screen {run? : path to run JSON, defaults to latest} {--criteria= : path to criteria JSON} {--dry-run : log results without writing} {--max-llm= : max LLM calls allowed} {--allow-empty-include : allow empty include keywords} {--unknown-year= : include|exclude|log} {--force : bypass safety checks}';
+    protected $signature = 'nexus:screen
+        {run? : path to run JSON, defaults to latest}
+        {--criteria= : path to criteria JSON/YAML}
+        {--dry-run : log results without writing}
+        {--max-llm= : max LLM calls allowed}
+        {--allow-empty-include : allow empty include keywords}
+        {--unknown-year= : include|exclude|log}
+        {--force : bypass safety checks}
+        {--project= : project ID for database-backed core screening}
+        {--include=* : inclusion criterion for database-backed core screening}
+        {--exclude=* : exclusion criterion for database-backed core screening}
+        {--mode=llm : llm|council for database-backed core screening}
+        {--stage=title_abstract : screening stage for database-backed core screening}
+        {--model= : single model for database-backed core screening}
+        {--council-models= : comma-separated council model IDs}
+        {--max= : maximum persisted works to screen}
+        {--work-ids= : comma-separated internal work IDs}
+        {--query-ids= : comma-separated search query IDs}
+        {--name= : human-readable screening run name}
+        {--store-prompts : persist rendered prompts in screening_votes}
+        {--store-raw-responses : persist raw LLM responses in screening_votes}';
 
     /**
      * The console command description.
@@ -28,6 +54,10 @@ class NexusScreen extends Command
 
     public function handle(): int
     {
+        if ($this->stringOption('project') !== null) {
+            return $this->handleProjectScreening();
+        }
+
         $runFile = $this->resolveRunFile();
         if ($runFile === null) {
             return self::FAILURE;
@@ -169,6 +199,106 @@ class NexusScreen extends Command
         return self::SUCCESS;
     }
 
+    private function handleProjectScreening(): int
+    {
+        $projectId = $this->stringOption('project');
+        if ($projectId === null) {
+            error('The --project option is required.');
+
+            return self::FAILURE;
+        }
+
+        if ($this->option('dry-run')) {
+            error('Database-backed screening does not support --dry-run yet.');
+
+            return self::FAILURE;
+        }
+
+        try {
+            $result = app(ScreenCorpusHandler::class)->handle(new ScreenCorpusCommand(
+                projectId: $projectId,
+                criteria: $this->coreCriteria(),
+                stage: ScreeningStage::from($this->stringOption('stage') ?? ScreeningStage::TITLE_ABSTRACT->value),
+                mode: $this->coreMode(),
+                model: $this->stringOption('model') ?? (string) config('nexus.screening.llm.model', 'openai/gpt-4.1-mini'),
+                councilModels: $this->csvOption('council-models') ?: $this->configuredCouncilModels(),
+                limit: $this->intOption('max'),
+                workIds: $this->csvOption('work-ids'),
+                queryIds: $this->csvOption('query-ids'),
+                name: $this->stringOption('name'),
+                context: ['project' => $projectId],
+                temperature: (float) config('nexus.screening.llm.temperature', 0),
+                maxTokens: (int) config('nexus.screening.llm.max_tokens', 600),
+                storePrompt: (bool) $this->option('store-prompts'),
+                storeRawResponse: (bool) $this->option('store-raw-responses'),
+            ));
+        } catch (\Throwable $error) {
+            error($error->getMessage());
+
+            return self::FAILURE;
+        }
+
+        info('Screening complete.');
+        $this->line(sprintf(
+            'Run: %s | Total: %d | Include: %d | Needs review: %d | Exclude: %d | Failed: %d',
+            $result->runId,
+            $result->total,
+            $result->included,
+            $result->needsReview,
+            $result->excluded,
+            $result->failed,
+        ));
+
+        return $result->hasFailures() ? self::FAILURE : self::SUCCESS;
+    }
+
+    private function coreCriteria(): ScreeningCriteria
+    {
+        $criteriaPath = $this->stringOption('criteria');
+        if ($criteriaPath !== null) {
+            return ScreeningCriteria::fromArray($this->parseCriteriaFile($this->normalizePath($criteriaPath)));
+        }
+
+        $include = $this->arrayOption('include');
+        $exclude = $this->arrayOption('exclude');
+
+        if ($include === [] && $exclude === []) {
+            error('Provide --criteria, --include, or --exclude for database-backed screening.');
+            throw new \InvalidArgumentException('Missing screening criteria.');
+        }
+
+        return ScreeningCriteria::fromArray([
+            'include' => $include,
+            'exclude' => $exclude,
+        ]);
+    }
+
+    private function coreMode(): ScreeningRunMode
+    {
+        return match (strtolower($this->stringOption('mode') ?? 'llm')) {
+            'llm', 'single', 'llm_single' => ScreeningRunMode::LLM_SINGLE,
+            'council', 'llm_council' => ScreeningRunMode::LLM_COUNCIL,
+            default => throw new \InvalidArgumentException('Unsupported screening mode. Use llm or council.'),
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function configuredCouncilModels(): array
+    {
+        $models = config('nexus.screening.llm.council.models', []);
+
+        if (! is_array($models)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn ($model): string => trim((string) $model),
+            $models,
+        )));
+    }
+
     private function resolveRunFile(): ?string
     {
         $runArg = $this->argument('run');
@@ -303,6 +433,74 @@ class NexusScreen extends Command
 
             return null;
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseCriteriaFile(string $path): array
+    {
+        if (! File::exists($path)) {
+            throw new \InvalidArgumentException("Criteria file not found: {$path}");
+        }
+
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $parsed = match ($extension) {
+            'yaml', 'yml' => Yaml::parseFile($path),
+            default => json_decode(File::get($path), true, flags: JSON_THROW_ON_ERROR),
+        };
+
+        if (! is_array($parsed)) {
+            throw new \InvalidArgumentException("Criteria file must parse to an object: {$path}");
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function arrayOption(string $name): array
+    {
+        $value = $this->option($name);
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn ($item): string => trim((string) $item),
+            $value,
+        )));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function csvOption(string $name): array
+    {
+        $value = $this->stringOption($name);
+        if ($value === null) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (string $item): string => trim($item),
+            explode(',', $value),
+        )));
+    }
+
+    private function intOption(string $name): ?int
+    {
+        $value = $this->stringOption($name);
+
+        return $value === null ? null : (int) $value;
+    }
+
+    private function stringOption(string $name): ?string
+    {
+        $value = $this->option($name);
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 
     private function validateRunData(array $runData, string $runFile): ?string

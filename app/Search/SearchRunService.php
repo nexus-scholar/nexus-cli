@@ -2,6 +2,7 @@
 
 namespace App\Search;
 
+use Nexus\Search\Application\Aggregator\AggregatedResult;
 use Nexus\Search\Domain\CorpusSlice;
 use Nexus\Search\Domain\ScholarlyWork;
 
@@ -46,13 +47,14 @@ final class SearchRunService
                 payload: $this->serializer->forQuery($result->corpus->all(), $query),
             );
 
-            $globalCorpus = $globalCorpus->merge($result->corpus);
-            $this->rememberQueryMatches($globalMatches, $result->corpus->all(), $query);
+            $lightCorpus = $this->withoutRawData($result->corpus->all());
+            $globalCorpus = $globalCorpus->merge($lightCorpus);
+            $this->rememberQueryMatches($globalMatches, $lightCorpus->all(), $query);
 
             $queryRun = new SearchQueryRun(
                 query: $query,
                 coreQueryId: $coreCommand->query->id,
-                result: $result,
+                result: $this->withCorpus($result, $lightCorpus),
                 elapsedMs: $elapsedMs,
                 file: $runFile,
             );
@@ -61,6 +63,8 @@ final class SearchRunService
             if ($onQueryCompleted !== null) {
                 $onQueryCompleted($queryRun, $index + 1, count($queries));
             }
+
+            unset($result, $lightCorpus);
         }
 
         if ($selection->all) {
@@ -107,5 +111,27 @@ final class SearchRunService
                 $globalMatches[$key][] = $match;
             }
         }
+    }
+
+    /**
+     * @param  ScholarlyWork[]  $works
+     */
+    private function withoutRawData(array $works): CorpusSlice
+    {
+        return CorpusSlice::fromWorksUnsafe(...array_map(
+            fn (ScholarlyWork $work): ScholarlyWork => $work->withoutRawData(),
+            $works
+        ));
+    }
+
+    private function withCorpus(AggregatedResult $result, CorpusSlice $corpus): AggregatedResult
+    {
+        return new AggregatedResult(
+            corpus: $corpus,
+            providerStats: $result->providerStats,
+            totalRaw: $result->totalRaw,
+            fromCache: $result->fromCache,
+            durationMs: $result->durationMs,
+        );
     }
 }

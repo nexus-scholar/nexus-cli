@@ -121,7 +121,8 @@ function makeWork(
     string $provider,
     WorkId $primaryId,
     ?int $year = null,
-    ?string $abstract = null
+    ?string $abstract = null,
+    ?array $rawData = null
 ): ScholarlyWork {
     $authors = AuthorList::fromArray([
         new Author('Doe', 'Jane'),
@@ -139,7 +140,7 @@ function makeWork(
         abstract: $abstract,
         citedByCount: 12,
         isRetracted: false,
-        rawData: null
+        rawData: $rawData
     );
 }
 
@@ -349,4 +350,37 @@ test('writes global deduped master when running all queries', function () {
     $latestPayload = json_decode(File::get($latestPointer), true);
     expect($latestPayload['file'])->toBe('storage/runs/all_20260505_000738.json');
     expect($latestPayload['run_at'])->toBe(Carbon::now()->toIso8601String());
+});
+
+test('keeps raw data in per-query files but strips it from the global all file', function () {
+    Carbon::setTestNow('2026-05-05 00:07:38');
+
+    writeQueriesFile($this->queriesPath, [
+        ['id' => 'tomato', 'label' => 'Tomato', 'query' => 'tomato segmentation', 'include_raw_data' => true],
+        ['id' => 'vision', 'label' => 'Vision', 'query' => 'vision transformers', 'include_raw_data' => true],
+    ]);
+
+    $work = makeWork(
+        title: 'Raw Provider Paper',
+        provider: 'openalex',
+        primaryId: new WorkId(WorkIdNamespace::DOI, '10.1234/raw'),
+        year: 2024,
+        abstract: 'Example abstract.',
+        rawData: ['provider_payload' => str_repeat('x', 1024)]
+    );
+
+    bindAggregator(new AggregatedResult(
+        corpus: CorpusSlice::fromWorks($work),
+        providerStats: [],
+        totalRaw: 1
+    ));
+
+    $this->artisan('nexus:search', ['--all' => true])
+        ->assertExitCode(0);
+
+    $queryPayload = json_decode(File::get("{$this->runsDir}/tomato_20260505_000738.json"), true);
+    $globalPayload = json_decode(File::get("{$this->runsDir}/all_20260505_000738.json"), true);
+
+    expect($queryPayload[0]['rawData'])->toHaveKey('provider_payload')
+        ->and($globalPayload[0]['rawData'])->toBeNull();
 });
