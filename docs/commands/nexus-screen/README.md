@@ -158,3 +158,18 @@ Criteria format:
 ```
 
 Run-file mode can optionally call a locally bound `nexus.llm` callable, but database-backed project mode is the maintained LLM path.
+
+## After Screening
+
+For human review and model comparison:
+
+```powershell
+php artisan nexus:screen-adjudicate --example
+php artisan nexus:screen-adjudicate --project=tomatomap_label_efficiency --actor=reviewer-1 --file=storage/adjudication/tomatomap-human.yml
+php artisan nexus:screen-compare --project=tomatomap_label_efficiency --baseline-run=rules-run-id --candidate-run=human-run-id --stage=title_abstract
+```
+
+See:
+
+- [nexus:screen-adjudicate](../nexus-screen-adjudicate/README.md)
+- [nexus:screen-compare](../nexus-screen-compare/README.md)

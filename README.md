@@ -13,6 +13,8 @@ This repository is currently a project-style CLI app, not a Composer library. It
 | `php artisan nexus:run-stats` | Print summary statistics for a run JSON file or `storage/runs/latest.json`. |
 | `php artisan nexus:ingest` | Convert run JSON records into local paper pages. |
 | `php artisan nexus:screen` | Apply deterministic and optional LLM-assisted screening criteria and write `storage/screens/{run_id}.json`. |
+| `php artisan nexus:screen-adjudicate` | Record human adjudication decisions for a locked project through `nexus-scholar/core`. |
+| `php artisan nexus:screen-compare` | Compare two persisted screening runs and report agreement, disagreement, and transition counts. |
 | `php artisan nexus:fetch-full-text` | Retrieve legal open-access full text for included papers through `nexus-scholar/core`. |
 | `php artisan nexus:fetch-pdfs` | Backward-compatible alias for full-text retrieval. |
 | `php artisan nexus:graph` | Build and analyze citation graphs from run JSON relationships. |
@@ -119,6 +121,31 @@ php artisan nexus:screen `
 
 See [docs/commands/nexus-screen/README.md](docs/commands/nexus-screen/README.md) for criteria files, audit flags, DB inspection commands, and the legacy run-file mode.
 
+## Human Adjudication And Comparison
+
+After a project is locked, use human adjudication to record reviewer decisions without overwriting deterministic, LLM, or council runs:
+
+```powershell
+php artisan nexus:screen-adjudicate --example
+
+php artisan nexus:screen-adjudicate `
+  --project=tomatomap_label_efficiency `
+  --actor=reviewer-1 `
+  --file=storage/adjudication/tomatomap-human.yml
+```
+
+Compare screening strategies or compare model output against human decisions:
+
+```powershell
+php artisan nexus:screen-compare `
+  --project=tomatomap_label_efficiency `
+  --baseline-run=rules-run-id `
+  --candidate-run=human-run-id `
+  --stage=title_abstract
+```
+
+Use `--json` for downstream reports or notebooks. See [docs/commands/nexus-screen-adjudicate/README.md](docs/commands/nexus-screen-adjudicate/README.md) and [docs/commands/nexus-screen-compare/README.md](docs/commands/nexus-screen-compare/README.md).
+
 ## Full Text Retrieval
 
 ```powershell
@@ -177,4 +204,5 @@ Before treating this CLI as production-ready:
 
 - Add commands for `core` export history, snowballing, lock/unlock, and job progress.
 - Add end-to-end tests for search -> screen -> full text -> graph -> export.
+- Add a locked-project smoke test that covers adjudication, comparison, export metadata, and mutation blocking.
 - Decide whether this remains a project template or becomes an installable CLI package.
