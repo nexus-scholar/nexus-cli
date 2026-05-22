@@ -2,6 +2,11 @@
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
+use Nexus\Screening\Application\UseCase\ScreenCorpusCommand;
+use Nexus\Screening\Application\UseCase\ScreenCorpusHandler;
+use Nexus\Screening\Application\UseCase\ScreenCorpusResult;
+use Nexus\Screening\Domain\ScreeningRunMode;
+use Nexus\Screening\Domain\ScreeningStage;
 
 beforeEach(function () {
     $this->runsDir = storage_path('runs');
@@ -825,4 +830,116 @@ test('LLM include false results in exclusion even when deterministic passes', fu
     expect($data['decisions'][0]['deterministic_decision'])->toBeTrue();
     expect($data['decisions'][0]['final_decision_source'])->toBe('llm');
     expect($data['decisions'][0]['llm_include'])->toBeFalse();
+});
+
+test('routes project screening to core screen corpus handler', function () {
+    $fakeHandler = new class
+    {
+        /** @var list<ScreenCorpusCommand> */
+        public array $commands = [];
+
+        public function handle(ScreenCorpusCommand $command): ScreenCorpusResult
+        {
+            $this->commands[] = $command;
+
+            return new ScreenCorpusResult(
+                runId: 'screen-run-1',
+                total: 3,
+                included: 1,
+                needsReview: 1,
+                excluded: 1,
+                failed: 0,
+                durationMs: 12,
+            );
+        }
+    };
+
+    app()->instance(ScreenCorpusHandler::class, $fakeHandler);
+
+    $this->artisan('nexus:screen', [
+        '--project' => 'tomatomap_label_efficiency',
+        '--include' => ['tomato instance segmentation', 'label efficiency'],
+        '--exclude' => ['medical imaging'],
+        '--mode' => 'council',
+        '--stage' => 'title_abstract',
+        '--model' => 'openai/gpt-4.1-mini',
+        '--council-models' => 'openai/gpt-4.1-mini,anthropic/claude-3.5-sonnet',
+        '--max' => '3',
+        '--work-ids' => 'work-1,work-2',
+        '--query-ids' => 'query-1',
+        '--name' => 'TomatoMAP smoke screen',
+        '--store-prompts' => true,
+        '--store-raw-responses' => true,
+    ])
+        ->expectsOutputToContain('Screening complete.')
+        ->expectsOutputToContain('Run: screen-run-1 | Total: 3 | Include: 1 | Needs review: 1 | Exclude: 1 | Failed: 0')
+        ->assertExitCode(0);
+
+    expect($fakeHandler->commands)->toHaveCount(1);
+
+    $command = $fakeHandler->commands[0];
+    expect($command->projectId)->toBe('tomatomap_label_efficiency')
+        ->and($command->criteria->toArray())->toBe([
+            'exclude' => ['medical imaging'],
+            'include' => ['tomato instance segmentation', 'label efficiency'],
+        ])
+        ->and($command->mode)->toBe(ScreeningRunMode::LLM_COUNCIL)
+        ->and($command->stage)->toBe(ScreeningStage::TITLE_ABSTRACT)
+        ->and($command->model)->toBe('openai/gpt-4.1-mini')
+        ->and($command->councilModels)->toBe(['openai/gpt-4.1-mini', 'anthropic/claude-3.5-sonnet'])
+        ->and($command->limit)->toBe(3)
+        ->and($command->workIds)->toBe(['work-1', 'work-2'])
+        ->and($command->queryIds)->toBe(['query-1'])
+        ->and($command->name)->toBe('TomatoMAP smoke screen')
+        ->and($command->storePrompt)->toBeTrue()
+        ->and($command->storeRawResponse)->toBeTrue();
+});
+
+test('project screening reads YAML criteria files', function () {
+    $fakeHandler = new class
+    {
+        /** @var list<ScreenCorpusCommand> */
+        public array $commands = [];
+
+        public function handle(ScreenCorpusCommand $command): ScreenCorpusResult
+        {
+            $this->commands[] = $command;
+
+            return new ScreenCorpusResult(
+                runId: 'yaml-screen-run',
+                total: 1,
+                included: 1,
+                needsReview: 0,
+                excluded: 0,
+                failed: 0,
+                durationMs: 8,
+            );
+        }
+    };
+
+    app()->instance(ScreenCorpusHandler::class, $fakeHandler);
+
+    $criteriaPath = storage_path('project-screening-criteria.yml');
+    File::put($criteriaPath, implode(PHP_EOL, [
+        'include:',
+        '  - tomato instance segmentation',
+        '  - label-efficient annotation',
+        'exclude:',
+        '  - medical imaging',
+    ]));
+    $this->createdPaths[] = $criteriaPath;
+
+    $this->artisan('nexus:screen', [
+        '--project' => 'tomatomap_label_efficiency',
+        '--criteria' => $criteriaPath,
+        '--max' => '1',
+    ])
+        ->expectsOutputToContain('Screening complete.')
+        ->assertExitCode(0);
+
+    expect($fakeHandler->commands)->toHaveCount(1)
+        ->and($fakeHandler->commands[0]->criteria->toArray())->toBe([
+            'exclude' => ['medical imaging'],
+            'include' => ['tomato instance segmentation', 'label-efficient annotation'],
+        ]);
 });
