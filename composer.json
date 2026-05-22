@@ -38,7 +38,7 @@
             "options": {
                 "symlink": true,
                 "versions": {
-                    "mbsoft31/graph-algorithms": "1.1.0"
+                    "nexus-scholar/graph-algorithms": "1.2.0"
                 }
             }
         }

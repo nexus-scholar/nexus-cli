@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "daffb80f2baf3db9e3371981ad330beb",
+    "content-hash": "ab5a88030d2c0e10c7bd4c5af91406ca",
     "packages": [
         {
             "name": "brick/math",
@@ -2099,55 +2099,6 @@
             "time": "2026-03-08T20:05:35+00:00"
         },
         {
-            "name": "mbsoft31/graph-algorithms",
-            "version": "1.1.0",
-            "dist": {
-                "type": "path",
-                "url": "../graph-algorithms",
-                "reference": "faa5161389062783188b1e1f43cc014b8dafe890"
-            },
-            "require": {
-                "nexus-scholar/graph-core": "^1.0",
-                "php": "^8.2"
-            },
-            "require-dev": {
-                "laravel/pint": "^1.29",
-                "pestphp/pest": "^3.8",
-                "phpbench/phpbench": "^1.4",
-                "phpstan/phpstan": "^2.1"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Mbsoft\\Graph\\Algorithms\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "Mbsoft\\Graph\\Algorithms\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "pest"
-                ],
-                "bench": [
-                    "phpbench run --report=default"
-                ],
-                "stan": [
-                    "phpstan analyse src --level=5"
-                ]
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "A high-performance library of standard graph algorithms for PHP.",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
             "name": "monolog/monolog",
             "version": "3.10.0",
             "source": {
@@ -2519,12 +2470,12 @@
             "dist": {
                 "type": "path",
                 "url": "../core",
-                "reference": "4fb4afa42e8b82388045c965234298b46027238c"
+                "reference": "14f4cc33d219537ac289b57b59a365e9c159a121"
             },
             "require": {
                 "composer/ca-bundle": "^1.5",
                 "guzzlehttp/guzzle": "^7.8",
-                "mbsoft31/graph-algorithms": "^1.1",
+                "nexus-scholar/graph-algorithms": "^1.2",
                 "nexus-scholar/graph-core": "^1.0",
                 "php": "^8.3",
                 "symfony/yaml": "^7.0 || ^8.0"
@@ -2579,6 +2530,67 @@
                 "MIT"
             ],
             "description": "Systematic Literature Review toolkit for PHP 8.3+",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "nexus-scholar/graph-algorithms",
+            "version": "1.2.0",
+            "dist": {
+                "type": "path",
+                "url": "../graph-algorithms",
+                "reference": "d214d2266497fe6d245d862803c629b97332f8e7"
+            },
+            "require": {
+                "nexus-scholar/graph-core": "^1.0",
+                "php": "^8.2"
+            },
+            "replace": {
+                "mbsoft31/graph-algorithms": "self.version"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.29",
+                "pestphp/pest": "^3.8",
+                "phpbench/phpbench": "^1.4",
+                "phpstan/phpstan": "^2.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Mbsoft\\Graph\\Algorithms\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Mbsoft\\Graph\\Algorithms\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "bench": [
+                    "phpbench run --report=default"
+                ],
+                "stan": [
+                    "phpstan analyse src --level=5"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A high-performance library of standard graph algorithms for PHP.",
+            "homepage": "https://github.com/nexus-scholar/graph-algorithms",
+            "keywords": [
+                "algorithms",
+                "centrality",
+                "graph",
+                "network",
+                "pagerank",
+                "pathfinding"
+            ],
             "transport-options": {
                 "symlink": true,
                 "relative": true
