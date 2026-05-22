@@ -100,12 +100,35 @@ Build this only after nexus:ingest is working.
 
 ---
 
-## nexus:screen  (BUILD)
+## nexus:screen  (EXISTS)
 
-Signature: nexus:screen {run? : path to run JSON, defaults to latest} {--criteria= : path to criteria JSON}
+Signature:
 
-Screens run results using inclusion/exclusion criteria and writes:
-- storage/screens/{run_id}.json
+```text
+nexus:screen
+  {run? : path to run JSON, defaults to latest}
+  {--criteria= : path to criteria JSON/YAML}
+  {--project= : project ID for database-backed core screening}
+  {--include=* : inclusion criterion for database-backed core screening}
+  {--exclude=* : exclusion criterion for database-backed core screening}
+  {--mode=llm : llm|council for database-backed core screening}
+  {--stage=title_abstract : screening stage for database-backed core screening}
+  {--model= : single model for database-backed core screening}
+  {--council-models= : comma-separated council model IDs}
+  {--max= : maximum persisted works to screen}
+  {--work-ids= : comma-separated internal work IDs}
+  {--query-ids= : comma-separated search query IDs}
+  {--name= : human-readable screening run name}
+  {--store-prompts : persist rendered prompts in screening_votes}
+  {--store-raw-responses : persist raw LLM responses in screening_votes}
+```
+
+Modes:
+
+- Run-file mode screens local run JSON and writes `storage/screens/{run_id}.json`.
+- Project mode delegates to `nexus-scholar/core` and persists `screening_runs`, `screening_decisions`, and `screening_votes`.
+
+See `docs/commands/nexus-screen/README.md` for LLM setup, council examples, and DB inspection commands.
 
 ---
 
@@ -116,4 +139,3 @@ Signature: nexus:fetch-pdfs {screen? : path to screen JSON, defaults to latest}
 Fetches PDFs for included papers (OpenAlex) and saves:
 - storage/pdfs/{run_id}/{slug}.pdf
 - storage/pdfs/{run_id}/manifest.json
-
