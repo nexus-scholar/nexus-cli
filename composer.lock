@@ -2589,7 +2589,7 @@
             "dist": {
                 "type": "path",
                 "url": "../core",
-                "reference": "a50d297530b3a19c332962616c43149a07471a32"
+                "reference": "1564f95e77efb7a696e4be2369c4c071a91bae31"
             },
             "require": {
                 "composer/ca-bundle": "^1.5",

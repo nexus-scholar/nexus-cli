@@ -1,5 +1,7 @@
 <?php
 
+namespace Tests\Feature\Commands;
+
 use Illuminate\Support\Facades\File;
 use Nexus\Screening\Application\Port\ScreeningDecisionRepositoryPort;
 use Nexus\Screening\Application\Port\ScreeningRunRepositoryPort;
@@ -22,15 +24,15 @@ afterEach(function (): void {
 });
 
 test('screen adjudicate command records human decisions through core handler', function (): void {
-    $runs = new CliAdjudicationRuns;
-    $decisions = new CliAdjudicationDecisions;
+    $runs = cliAdjudicationRuns();
+    $decisions = cliAdjudicationDecisions();
 
     app()->instance(AdjudicateScreeningDecisionsHandler::class, new AdjudicateScreeningDecisionsHandler(
         $runs,
         $decisions,
         new CorpusLockPolicy(
-            new CliLockPort(['project-1' => true]),
-            new CliMembershipPort,
+            cliLockPort(['project-1' => true]),
+            cliMembershipPort(),
         ),
     ));
 
@@ -63,11 +65,11 @@ YAML);
 
 test('screen compare command prints transition summary from core handler', function (): void {
     app()->instance(CompareScreeningRunsHandler::class, new CompareScreeningRunsHandler(
-        new CliCompareRuns([
+        cliCompareRuns([
             cliRun('baseline-run', ScreeningRunMode::RULES),
             cliRun('human-run', ScreeningRunMode::HUMAN),
         ]),
-        new CliCompareDecisions([
+        cliCompareDecisions([
             cliVerdict('d1', 'baseline-run', 'work-1', ScreeningDecision::INCLUDE, 'rules'),
             cliVerdict('d2', 'baseline-run', 'work-2', ScreeningDecision::EXCLUDE, 'rules'),
             cliVerdict('d3', 'human-run', 'work-1', ScreeningDecision::INCLUDE, 'human'),
@@ -88,69 +90,81 @@ test('screen compare command prints transition summary from core handler', funct
         ->expectsOutputToContain('Reference run: human-run');
 });
 
-final class CliLockPort implements ProjectLockPort
+function cliLockPort(array $locks): ProjectLockPort
 {
-    public function __construct(private readonly array $locks) {}
-
-    public function isLocked(string $projectId): bool
+    return new class($locks) implements ProjectLockPort
     {
-        return $this->locks[$projectId] ?? false;
-    }
+        public function __construct(private readonly array $locks) {}
+
+        public function isLocked(string $projectId): bool
+        {
+            return $this->locks[$projectId] ?? false;
+        }
+    };
 }
 
-final class CliMembershipPort implements ProjectWorkMembershipPort
+function cliMembershipPort(): ProjectWorkMembershipPort
 {
-    public function missingWorkIds(string $projectId, array $workIds): array
+    return new class implements ProjectWorkMembershipPort
     {
-        return [];
-    }
+        public function missingWorkIds(string $projectId, array $workIds): array
+        {
+            return [];
+        }
+    };
 }
 
-final class CliAdjudicationRuns implements ScreeningRunRepositoryPort
+function cliAdjudicationRuns(): object
 {
-    public array $started = [];
-
-    public array $completed = [];
-
-    public function get(string $screeningRunId): ?ScreeningRun
+    return new class implements ScreeningRunRepositoryPort
     {
-        return $this->started[$screeningRunId] ?? null;
-    }
+        public array $started = [];
 
-    public function start(ScreeningRun $run): void
-    {
-        $this->started[$run->id] = $run;
-    }
+        public array $completed = [];
 
-    public function complete(string $screeningRunId, array $counts): void
-    {
-        $this->completed[$screeningRunId] = $counts;
-    }
+        public function get(string $screeningRunId): ?ScreeningRun
+        {
+            return $this->started[$screeningRunId] ?? null;
+        }
 
-    public function fail(string $screeningRunId, string $message): void {}
+        public function start(ScreeningRun $run): void
+        {
+            $this->started[$run->id] = $run;
+        }
+
+        public function complete(string $screeningRunId, array $counts): void
+        {
+            $this->completed[$screeningRunId] = $counts;
+        }
+
+        public function fail(string $screeningRunId, string $message): void {}
+    };
 }
 
-final class CliAdjudicationDecisions implements ScreeningDecisionRepositoryPort
+function cliAdjudicationDecisions(): object
 {
-    public array $recorded = [];
-
-    public function record(ScreeningVerdict $verdict): void
+    return new class implements ScreeningDecisionRepositoryPort
     {
-        $this->recorded[] = $verdict;
-    }
+        public array $recorded = [];
 
-    public function latestForWork(string $projectId, string $workId, ScreeningStage $stage): ?ScreeningVerdict
-    {
-        return null;
-    }
+        public function record(ScreeningVerdict $verdict): void
+        {
+            $this->recorded[] = $verdict;
+        }
 
-    public function forRun(string $screeningRunId): array
-    {
-        return array_values(array_filter(
-            $this->recorded,
-            static fn (ScreeningVerdict $verdict): bool => $verdict->screeningRunId === $screeningRunId,
-        ));
-    }
+        public function latestForWork(string $projectId, string $workId, ScreeningStage $stage): ?ScreeningVerdict
+        {
+            return null;
+        }
+
+        public function forRun(string $screeningRunId): array
+        {
+            return array_values(array_filter(
+                $this->recorded,
+                static fn (ScreeningVerdict $verdict): bool => $verdict->screeningRunId === $screeningRunId,
+            ));
+        }
+    };
 }
 
 function cliRun(string $id, ScreeningRunMode $mode): ScreeningRun
@@ -185,45 +199,51 @@ function cliVerdict(
     );
 }
 
-final class CliCompareRuns implements ScreeningRunRepositoryPort
+function cliCompareRuns(array $runs): ScreeningRunRepositoryPort
 {
-    private array $runs = [];
-
-    public function __construct(array $runs)
+    return new class($runs) implements ScreeningRunRepositoryPort
     {
-        foreach ($runs as $run) {
-            $this->runs[$run->id] = $run;
+        private array $runs = [];
+
+        public function __construct(array $runs)
+        {
+            foreach ($runs as $run) {
+                $this->runs[$run->id] = $run;
+            }
         }
-    }
 
-    public function get(string $screeningRunId): ?ScreeningRun
-    {
-        return $this->runs[$screeningRunId] ?? null;
-    }
+        public function get(string $screeningRunId): ?ScreeningRun
+        {
+            return $this->runs[$screeningRunId] ?? null;
+        }
 
-    public function start(ScreeningRun $run): void {}
+        public function start(ScreeningRun $run): void {}
 
-    public function complete(string $screeningRunId, array $counts): void {}
+        public function complete(string $screeningRunId, array $counts): void {}
 
-    public function fail(string $screeningRunId, string $message): void {}
+        public function fail(string $screeningRunId, string $message): void {}
+    };
 }
 
-final class CliCompareDecisions implements ScreeningDecisionRepositoryPort
+function cliCompareDecisions(array $verdicts): ScreeningDecisionRepositoryPort
 {
-    public function __construct(private readonly array $verdicts) {}
-
-    public function record(ScreeningVerdict $verdict): void {}
-
-    public function latestForWork(string $projectId, string $workId, ScreeningStage $stage): ?ScreeningVerdict
+    return new class($verdicts) implements ScreeningDecisionRepositoryPort
     {
-        return null;
-    }
+        public function __construct(private readonly array $verdicts) {}
 
-    public function forRun(string $screeningRunId): array
-    {
-        return array_values(array_filter(
-            $this->verdicts,
-            static fn (ScreeningVerdict $verdict): bool => $verdict->screeningRunId === $screeningRunId,
-        ));
-    }
+        public function record(ScreeningVerdict $verdict): void {}
+
+        public function latestForWork(string $projectId, string $workId, ScreeningStage $stage): ?ScreeningVerdict
+        {
+            return null;
+        }
+
+        public function forRun(string $screeningRunId): array
+        {
+            return array_values(array_filter(
+                $this->verdicts,
+                static fn (ScreeningVerdict $verdict): bool => $verdict->screeningRunId === $screeningRunId,
+            ));
+        }
+    };
 }
