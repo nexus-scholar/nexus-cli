@@ -111,7 +111,7 @@ Council mode runs multiple model attempts and aggregates the result:
 php artisan nexus:screen `
   --project=tomatomap_label_efficiency `
   --mode=council `
-  --council-models="openai/gpt-4.1-mini,google/gemini-2.5-flash,anthropic/claude-3.5-haiku" `
+  --council-models="openai/gpt-4.1-mini,google/gemini-2.5-flash,mistralai/mistral-small-2603" `
   --include="crop image segmentation" `
   --exclude="medical imaging" `
   --max=3
