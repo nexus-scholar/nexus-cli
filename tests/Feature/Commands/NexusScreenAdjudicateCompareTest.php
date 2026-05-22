@@ -63,6 +63,47 @@ YAML);
         ->and($decisions->recorded[0]->decidedBy)->toBe('reviewer-1');
 });
 
+test('screen adjudicate command prints an example file', function (): void {
+    $this->artisan('nexus:screen-adjudicate', [
+        '--example' => true,
+    ])
+        ->assertExitCode(0)
+        ->expectsOutput('stage: title_abstract')
+        ->expectsOutput('criteria_hash: tomato-label-efficiency-v1')
+        ->expectsOutput('run_id: human-adjudication-2026-05-22')
+        ->expectsOutput('run_name: TomatoMAP human adjudication')
+        ->expectsOutput('decisions:')
+        ->expectsOutput('  - work_id: 00000000-0000-0000-0000-000000000001')
+        ->expectsOutput('    decision: include')
+        ->expectsOutput('    reason: The title and abstract directly study tomato instance segmentation with label-efficient learning.')
+        ->expectsOutput('    evidence:')
+        ->expectsOutput('      - tomato instance segmentation')
+        ->expectsOutput('      - limited annotation budget')
+        ->expectsOutput('    exclusion_basis: []')
+        ->expectsOutput('    confidence: 1.0')
+        ->expectsOutput('    source_decision_ids:')
+        ->expectsOutput('      - previous-screening-decision-id');
+});
+
+test('screen adjudicate command reports invalid decisions with row context', function (): void {
+    File::put(storage_path('adjudication-test.yml'), <<<'YAML'
+stage: title_abstract
+criteria_hash: criteria-hash
+decisions:
+  - work_id: work-1
+    decision: maybe
+    reason: The reviewer is unsure.
+YAML);
+
+    $this->artisan('nexus:screen-adjudicate', [
+        '--project' => 'project-1',
+        '--actor' => 'reviewer-1',
+        '--file' => storage_path('adjudication-test.yml'),
+    ])
+        ->assertExitCode(1)
+        ->expectsOutputToContain('Decision row 0 has invalid decision "maybe". Allowed decisions: include, needs_review, exclude.');
+});
+
 test('screen compare command prints transition summary from core handler', function (): void {
     app()->instance(CompareScreeningRunsHandler::class, new CompareScreeningRunsHandler(
         cliCompareRuns([
@@ -88,6 +129,17 @@ test('screen compare command prints transition summary from core handler', funct
         ->expectsOutputToContain('Comparable: 2 | Agreement: 1 (50.0%) | Disagreement: 1 (50.0%)')
         ->expectsOutputToContain('exclude -> include: 1')
         ->expectsOutputToContain('Reference run: human-run');
+});
+
+test('screen compare command reports invalid stage values clearly', function (): void {
+    $this->artisan('nexus:screen-compare', [
+        '--project' => 'project-1',
+        '--baseline-run' => 'baseline-run',
+        '--candidate-run' => 'human-run',
+        '--stage' => 'abstract_only',
+    ])
+        ->assertExitCode(1)
+        ->expectsOutputToContain('Invalid screening stage "abstract_only". Allowed stages: title_abstract, full_text, human_adjudication.');
 });
 
 function cliLockPort(array $locks): ProjectLockPort

@@ -24,25 +24,34 @@ class NexusScreenAdjudicate extends Command
         {--run= : existing or desired human screening run ID}
         {--stage= : screening stage override}
         {--criteria-hash= : criteria hash override}
-        {--name= : human-readable adjudication run name}';
+        {--name= : human-readable adjudication run name}
+        {--example : print an example YAML adjudication file and exit}';
 
     protected $description = 'Record human adjudication decisions for a locked Nexus Scholar project.';
 
-    public function handle(AdjudicateScreeningDecisionsHandler $handler): int
+    public function handle(): int
     {
+        if ((bool) $this->option('example')) {
+            foreach (explode("\n", $this->exampleYaml()) as $line) {
+                $this->line(rtrim($line, "\r"));
+            }
+
+            return self::SUCCESS;
+        }
+
         $projectId = $this->stringOption('project');
         $actorId = $this->stringOption('actor');
         $file = $this->stringOption('file');
 
         if ($projectId === null || $actorId === null || $file === null) {
-            error('Provide --project, --actor, and --file.');
+            error('Provide --project, --actor, and --file. Example: php artisan nexus:screen-adjudicate --project=tomatomap_label_efficiency --actor=reviewer-1 --file=storage/adjudication.yml');
 
             return self::FAILURE;
         }
 
         try {
             $payload = $this->readPayload($this->normalizePath($file));
-            $stage = ScreeningStage::from($this->stringOption('stage') ?? $this->payloadString($payload, 'stage') ?? ScreeningStage::TITLE_ABSTRACT->value);
+            $stage = $this->stageFrom($this->stringOption('stage') ?? $this->payloadString($payload, 'stage') ?? ScreeningStage::TITLE_ABSTRACT->value);
             $criteriaHash = $this->stringOption('criteria-hash') ?? $this->payloadString($payload, 'criteria_hash');
 
             if ($criteriaHash === null) {
@@ -53,6 +62,7 @@ class NexusScreenAdjudicate extends Command
 
             $decisions = $this->decisionInputs($payload);
 
+            $handler = app(AdjudicateScreeningDecisionsHandler::class);
             $result = $handler->handle(new AdjudicateScreeningDecisionsCommand(
                 projectId: $projectId,
                 actorId: $actorId,
@@ -93,7 +103,8 @@ class NexusScreenAdjudicate extends Command
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $payload = match ($extension) {
             'yaml', 'yml' => Yaml::parseFile($path),
-            default => json_decode(File::get($path), true, flags: JSON_THROW_ON_ERROR),
+            'json' => json_decode(File::get($path), true, flags: JSON_THROW_ON_ERROR),
+            default => throw new \InvalidArgumentException('Adjudication file must be JSON or YAML. Use --example to print the expected shape.'),
         };
 
         if (! is_array($payload)) {
@@ -128,15 +139,20 @@ class NexusScreenAdjudicate extends Command
                 throw new \InvalidArgumentException("Decision row {$index} requires work_id, decision, and reason.");
             }
 
+            $confidence = $this->rowFloat($row, 'confidence');
+            if ($confidence !== null && ($confidence < 0.0 || $confidence > 1.0)) {
+                throw new \InvalidArgumentException("Decision row {$index} confidence must be between 0 and 1.");
+            }
+
             $decisions[] = new HumanAdjudicationInput(
                 workId: $workId,
-                decision: ScreeningDecision::from($decision),
+                decision: $this->decisionFrom($decision, $index),
                 reason: $reason,
                 evidence: $this->rowList($row, 'evidence'),
                 uncertainty: $this->rowList($row, 'uncertainty'),
                 exclusionBasis: $this->rowList($row, 'exclusion_basis'),
                 sourceDecisionIds: $this->rowList($row, 'source_decision_ids'),
-                confidence: $this->rowFloat($row, 'confidence') ?? 1.0,
+                confidence: $confidence ?? 1.0,
             );
         }
 
@@ -200,5 +216,57 @@ class NexusScreenAdjudicate extends Command
         $value = $this->option($name);
 
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    private function stageFrom(string $stage): ScreeningStage
+    {
+        foreach (ScreeningStage::cases() as $case) {
+            if ($case->value === $stage) {
+                return $case;
+            }
+        }
+
+        throw new \InvalidArgumentException(sprintf(
+            'Invalid screening stage "%s". Allowed stages: %s.',
+            $stage,
+            implode(', ', array_map(static fn (ScreeningStage $case): string => $case->value, ScreeningStage::cases())),
+        ));
+    }
+
+    private function decisionFrom(string $decision, int $index): ScreeningDecision
+    {
+        foreach (ScreeningDecision::cases() as $case) {
+            if ($case->value === $decision) {
+                return $case;
+            }
+        }
+
+        throw new \InvalidArgumentException(sprintf(
+            'Decision row %d has invalid decision "%s". Allowed decisions: %s.',
+            $index,
+            $decision,
+            implode(', ', array_map(static fn (ScreeningDecision $case): string => $case->value, ScreeningDecision::cases())),
+        ));
+    }
+
+    private function exampleYaml(): string
+    {
+        return <<<'YAML'
+stage: title_abstract
+criteria_hash: tomato-label-efficiency-v1
+run_id: human-adjudication-2026-05-22
+run_name: TomatoMAP human adjudication
+decisions:
+  - work_id: 00000000-0000-0000-0000-000000000001
+    decision: include
+    reason: The title and abstract directly study tomato instance segmentation with label-efficient learning.
+    evidence:
+      - tomato instance segmentation
+      - limited annotation budget
+    exclusion_basis: []
+    confidence: 1.0
+    source_decision_ids:
+      - previous-screening-decision-id
+YAML;
     }
 }

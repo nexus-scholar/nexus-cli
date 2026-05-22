@@ -132,6 +132,55 @@ See `docs/commands/nexus-screen/README.md` for LLM setup, council examples, and 
 
 ---
 
+## nexus:screen-adjudicate  (EXISTS)
+
+Signature:
+
+```text
+nexus:screen-adjudicate
+  {--project= : project ID}
+  {--actor= : reviewer/user ID}
+  {--file= : YAML/JSON adjudication file}
+  {--run= : existing or desired human screening run ID}
+  {--stage= : screening stage override}
+  {--criteria-hash= : criteria hash override}
+  {--name= : human-readable adjudication run name}
+  {--example : print an example YAML adjudication file and exit}
+```
+
+Parses a human adjudication file and delegates to `nexus-scholar/core`.
+
+Core owns:
+- locked-project requirement,
+- project work membership checks,
+- decision persistence,
+- run metadata,
+- latest-decision ordering.
+
+See `docs/commands/nexus-screen-adjudicate/README.md`.
+
+---
+
+## nexus:screen-compare  (EXISTS)
+
+Signature:
+
+```text
+nexus:screen-compare
+  {--project= : project ID}
+  {--baseline-run= : baseline screening run ID}
+  {--candidate-run= : candidate screening run ID}
+  {--stage= : optional stage filter}
+  {--json : output JSON}
+  {--no-rows : omit per-work rows from result}
+```
+
+Compares two persisted screening runs through `nexus-scholar/core` and prints agreement, disagreement, transition counts, missing rows, and optional JSON.
+
+See `docs/commands/nexus-screen-compare/README.md`.
+
+---
+
 ## nexus:fetch-pdfs  (BUILD)
 
 Signature: nexus:fetch-pdfs {screen? : path to screen JSON, defaults to latest}

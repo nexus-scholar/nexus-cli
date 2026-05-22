@@ -30,7 +30,7 @@ class NexusScreenCompare extends Command
         $candidateRunId = $this->stringOption('candidate-run');
 
         if ($projectId === null || $baselineRunId === null || $candidateRunId === null) {
-            error('Provide --project, --baseline-run, and --candidate-run.');
+            error('Provide --project, --baseline-run, and --candidate-run. Example: php artisan nexus:screen-compare --project=tomatomap_label_efficiency --baseline-run=rules-run-id --candidate-run=human-run-id');
 
             return self::FAILURE;
         }
@@ -87,7 +87,21 @@ class NexusScreenCompare extends Command
     {
         $stage = $this->stringOption('stage');
 
-        return $stage === null ? null : ScreeningStage::from($stage);
+        if ($stage === null) {
+            return null;
+        }
+
+        foreach (ScreeningStage::cases() as $case) {
+            if ($case->value === $stage) {
+                return $case;
+            }
+        }
+
+        throw new \InvalidArgumentException(sprintf(
+            'Invalid screening stage "%s". Allowed stages: %s.',
+            $stage,
+            implode(', ', array_map(static fn (ScreeningStage $case): string => $case->value, ScreeningStage::cases())),
+        ));
     }
 
     /**
