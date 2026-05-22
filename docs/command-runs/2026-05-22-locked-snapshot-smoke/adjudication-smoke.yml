@@ -1,0 +1,15 @@
+stage: title_abstract
+criteria_hash: locked-snapshot-smoke-v1
+run_id: locked-snapshot-human-20260522
+run_name: Locked snapshot human adjudication smoke
+decisions:
+  - work_id: c17bc19e-0fa0-453f-bb1e-5879b7723148
+    decision: needs_review
+    reason: The paper is crop or fruit segmentation and label-efficient, but the tomato-specific boundary needs human confirmation.
+    evidence:
+      - semi-supervised segmentation
+      - grape bunch natural images
+    uncertainty:
+      - tomato-specific corpus boundary
+    exclusion_basis: []
+    confidence: 0.75
