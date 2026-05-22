@@ -72,33 +72,52 @@ Outputs:
 
 ## Screening Workflow
 
-Initialize wiki/docs if needed:
+There are two screening paths:
+
+- Run-file mode reads local run JSON and writes `storage/screens/{run_id}.json`.
+- Project mode uses `nexus-scholar/core` and persists `screening_runs`, `screening_decisions`, and `screening_votes`.
+
+Use project mode for real title/abstract review work:
 
 ```powershell
-php artisan nexus:wiki-init
+php artisan nexus:screen `
+  --project=tomatomap_label_efficiency `
+  --include="crop image segmentation" `
+  --include="label-efficient or semi-supervised visual recognition" `
+  --exclude="medical imaging" `
+  --exclude="remote sensing only" `
+  --model=openai/gpt-4.1-mini `
+  --max=10 `
+  --name="TomatoMAP title abstract smoke"
 ```
 
-Create criteria:
+Enable OpenRouter-backed LLM screening in `.env`:
+
+```dotenv
+NEXUS_LLM_SCREENING_ENABLED=true
+NEXUS_LLM_OPENROUTER_API_KEY=
+NEXUS_LLM_SCREENING_MODEL=openai/gpt-4.1-mini
+```
+
+Then clear cached config:
 
 ```powershell
-copy storage/criteria.example.json storage/criteria.json
+php artisan config:clear
 ```
 
-Run screening:
+Council mode runs multiple model attempts and aggregates the result:
 
 ```powershell
-php artisan nexus:screen
-php artisan nexus:screen storage/runs/all_20260520_120000.json --criteria=storage/criteria.json
+php artisan nexus:screen `
+  --project=tomatomap_label_efficiency `
+  --mode=council `
+  --council-models="openai/gpt-4.1-mini,google/gemini-2.5-flash,anthropic/claude-3.5-haiku" `
+  --include="crop image segmentation" `
+  --exclude="medical imaging" `
+  --max=3
 ```
 
-Useful options:
-
-```powershell
-php artisan nexus:screen --dry-run
-php artisan nexus:screen --unknown-year=exclude
-php artisan nexus:screen --allow-empty-include
-php artisan nexus:screen --max-llm=25
-```
+See [docs/commands/nexus-screen/README.md](docs/commands/nexus-screen/README.md) for criteria files, audit flags, DB inspection commands, and the legacy run-file mode.
 
 ## Full Text Retrieval
 
