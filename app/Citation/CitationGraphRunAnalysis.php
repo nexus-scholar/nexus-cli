@@ -5,7 +5,7 @@ namespace App\Citation;
 use Nexus\CitationNetwork\Domain\CitationGraph;
 use Nexus\CitationNetwork\Domain\CitationPath;
 use Nexus\CitationNetwork\Domain\NetworkMetrics;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final readonly class CitationGraphRunAnalysis
 {

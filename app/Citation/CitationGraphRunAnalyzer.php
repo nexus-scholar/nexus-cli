@@ -12,7 +12,7 @@ use Nexus\CitationNetwork\Application\UseCase\FindShortestCitationPathHandler;
 use Nexus\CitationNetwork\Domain\CitationGraphType;
 use Nexus\CitationNetwork\Infrastructure\Graph\MbsoftNetworkMetricsCalculator;
 use Nexus\Search\Application\Dto\ScholarlyWorkDto;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\WorkId;
 
 final class CitationGraphRunAnalyzer

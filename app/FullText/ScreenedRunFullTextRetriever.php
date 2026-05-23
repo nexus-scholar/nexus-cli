@@ -9,7 +9,7 @@ use Nexus\Dissemination\Application\UseCase\RetrieveFullText;
 use Nexus\Dissemination\Application\UseCase\RetrieveFullTextHandler;
 use Nexus\Search\Application\Dto\ScholarlyWorkDto;
 use Nexus\Search\Domain\Port\WorkRepositoryPort;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 use Nexus\Shared\ValueObject\AuthorList;
 use Nexus\Shared\ValueObject\Venue;
 use Nexus\Shared\ValueObject\WorkId;
