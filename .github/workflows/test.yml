@@ -18,26 +18,6 @@ jobs:
     steps:
       - name: Checkout CLI
         uses: actions/checkout@v4
-        with:
-          path: nexus-cli
-
-      - name: Checkout core
-        uses: actions/checkout@v4
-        with:
-          repository: nexus-scholar/core
-          path: core
-
-      - name: Checkout graph-core
-        uses: actions/checkout@v4
-        with:
-          repository: mbsoft31/graph-core
-          path: graph-core
-
-      - name: Checkout graph-algorithms
-        uses: actions/checkout@v4
-        with:
-          repository: nexus-scholar/graph-algorithms
-          path: graph-algorithms
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -48,15 +28,12 @@ jobs:
           tools: composer:v2
 
       - name: Validate composer metadata
-        working-directory: nexus-cli
         run: composer validate --strict
 
       - name: Install dependencies
-        working-directory: nexus-cli
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Prepare Laravel test environment
-        working-directory: nexus-cli
         run: |
           cp .env.example .env
           php artisan key:generate --ansi
@@ -64,9 +41,7 @@ jobs:
           touch database/database.sqlite
 
       - name: Run tests
-        working-directory: nexus-cli
         run: composer test
 
       - name: Check formatting
-        working-directory: nexus-cli
         run: composer format:check
