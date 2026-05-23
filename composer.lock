@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ab5a88030d2c0e10c7bd4c5af91406ca",
+    "content-hash": "b9aad25a54396218279a77d648bd75cd",
     "packages": [
         {
             "name": "brick/math",
@@ -2466,11 +2466,17 @@
         },
         {
             "name": "nexus-scholar/core",
-            "version": "dev-master",
-            "dist": {
-                "type": "path",
-                "url": "../core",
+            "version": "v0.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nexus-scholar/core.git",
                 "reference": "80893039f10f5305023674d3e50af96134ec0c59"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nexus-scholar/core/zipball/80893039f10f5305023674d3e50af96134ec0c59",
+                "reference": "80893039f10f5305023674d3e50af96134ec0c59",
+                "shasum": ""
             },
             "require": {
                 "composer/ca-bundle": "^1.5",
@@ -2500,47 +2506,30 @@
                     "Nexus\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "php -d memory_limit=512M vendor/bin/pest"
-                ],
-                "test:unit": [
-                    "php -d memory_limit=512M vendor/bin/pest tests/Unit"
-                ],
-                "test:feature": [
-                    "php -d memory_limit=512M vendor/bin/pest tests/Feature"
-                ],
-                "analyse": [
-                    "php -d memory_limit=512M vendor/bin/phpstan analyse"
-                ],
-                "format": [
-                    "vendor/bin/pint --dirty"
-                ],
-                "format:check": [
-                    "vendor/bin/pint --test --dirty"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Systematic Literature Review toolkit for PHP 8.3+",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/nexus-scholar/core/issues",
+                "source": "https://github.com/nexus-scholar/core/tree/v0.2.0"
+            },
+            "time": "2026-05-23T20:36:27+00:00"
         },
         {
             "name": "nexus-scholar/graph-algorithms",
-            "version": "1.2.0",
-            "dist": {
-                "type": "path",
-                "url": "../graph-algorithms",
+            "version": "v1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nexus-scholar/graph-algorithms.git",
                 "reference": "d214d2266497fe6d245d862803c629b97332f8e7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nexus-scholar/graph-algorithms/zipball/d214d2266497fe6d245d862803c629b97332f8e7",
+                "reference": "d214d2266497fe6d245d862803c629b97332f8e7",
+                "shasum": ""
             },
             "require": {
                 "nexus-scholar/graph-core": "^1.0",
@@ -2561,47 +2550,39 @@
                     "Mbsoft\\Graph\\Algorithms\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Mbsoft\\Graph\\Algorithms\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "pest"
-                ],
-                "bench": [
-                    "phpbench run --report=default"
-                ],
-                "stan": [
-                    "phpstan analyse src --level=5"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "A high-performance library of standard graph algorithms for PHP.",
             "homepage": "https://github.com/nexus-scholar/graph-algorithms",
             "keywords": [
+                "Pagerank",
                 "algorithms",
                 "centrality",
                 "graph",
                 "network",
-                "pagerank",
                 "pathfinding"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/nexus-scholar/graph-algorithms/issues",
+                "source": "https://github.com/nexus-scholar/graph-algorithms/tree/v1.2.0"
+            },
+            "time": "2026-05-22T18:59:08+00:00"
         },
         {
             "name": "nexus-scholar/graph-core",
-            "version": "1.2.0",
-            "dist": {
-                "type": "path",
-                "url": "../graph-core",
+            "version": "v1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nexus-scholar/graph-core.git",
                 "reference": "f55dd89c8c8faf9fbb554e0b94248c1ede2cb7bd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nexus-scholar/graph-core/zipball/f55dd89c8c8faf9fbb554e0b94248c1ede2cb7bd",
+                "reference": "f55dd89c8c8faf9fbb554e0b94248c1ede2cb7bd",
+                "shasum": ""
             },
             "require": {
                 "ext-dom": "*",
@@ -2621,28 +2602,7 @@
                     "Mbsoft\\Graph\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ],
-                "test:coverage": [
-                    "vendor/bin/pest --coverage"
-                ],
-                "analyse": [
-                    "vendor/bin/phpstan analyse --memory-limit=512M"
-                ],
-                "format": [
-                    "vendor/bin/php-cs-fixer fix"
-                ],
-                "format:check": [
-                    "vendor/bin/php-cs-fixer fix --dry-run --diff"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -2655,18 +2615,19 @@
             "description": "A lightweight, performant, and dependency-free graph data structure library for PHP.",
             "homepage": "https://github.com/nexus-scholar/graph-core",
             "keywords": [
-                "algorithm",
+                "Algorithm",
+                "GraphML",
                 "cytoscape",
                 "data-structure",
                 "gexf",
                 "graph",
-                "graphml",
                 "network"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/nexus-scholar/graph-core/issues",
+                "source": "https://github.com/nexus-scholar/graph-core/tree/v1.2.0"
+            },
+            "time": "2026-05-22T15:13:20+00:00"
         },
         {
             "name": "nikic/php-parser",
@@ -9668,9 +9629,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "nexus-scholar/core": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

@@ -11,43 +11,11 @@
         "scholarly-search"
     ],
     "license": "MIT",
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../core",
-            "options": {
-                "symlink": true,
-                "versions": {
-                    "nexus-scholar/core": "dev-master"
-                }
-            }
-        },
-        {
-            "type": "path",
-            "url": "../graph-core",
-            "options": {
-                "symlink": true,
-                "versions": {
-                    "nexus-scholar/graph-core": "1.2.0"
-                }
-            }
-        },
-        {
-            "type": "path",
-            "url": "../graph-algorithms",
-            "options": {
-                "symlink": true,
-                "versions": {
-                    "nexus-scholar/graph-algorithms": "1.2.0"
-                }
-            }
-        }
-    ],
     "require": {
         "php": "^8.4",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
-        "nexus-scholar/core": "dev-master",
+        "nexus-scholar/core": "^0.2",
         "symfony/yaml": "^8.0"
     },
     "require-dev": {
