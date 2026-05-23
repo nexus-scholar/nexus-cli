@@ -3,7 +3,7 @@
 namespace App\Search;
 
 use Nexus\Search\Application\Dto\ScholarlyWorkDto;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final class SearchResultSerializer
 {

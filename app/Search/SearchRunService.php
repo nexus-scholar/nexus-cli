@@ -3,8 +3,8 @@
 namespace App\Search;
 
 use Nexus\Search\Application\Aggregator\AggregatedResult;
-use Nexus\Search\Domain\CorpusSlice;
-use Nexus\Search\Domain\ScholarlyWork;
+use Nexus\Shared\Domain\CorpusSlice;
+use Nexus\Shared\Domain\ScholarlyWork;
 
 final class SearchRunService
 {
