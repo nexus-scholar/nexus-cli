@@ -150,6 +150,29 @@ php artisan nexus:screen-compare `
 
 Use `--json` for downstream reports or notebooks. See [docs/commands/nexus-screen-adjudicate/README.md](docs/commands/nexus-screen-adjudicate/README.md) and [docs/commands/nexus-screen-compare/README.md](docs/commands/nexus-screen-compare/README.md).
 
+## Lock And Export
+
+Lock the corpus when membership is ready to freeze:
+
+```powershell
+php artisan nexus:corpus-lock `
+  --project=tomatomap_label_efficiency `
+  --actor=reviewer-1 `
+  --reason="Final title/abstract screening corpus"
+```
+
+Export bibliography after lock for final/citable output:
+
+```powershell
+php artisan nexus:export-bibliography `
+  --project=tomatomap_label_efficiency `
+  --format=bibtex `
+  --output=exports/tomatomap-final.bib `
+  --requested-by=reviewer-1
+```
+
+See [docs/commands/nexus-corpus-lock/README.md](docs/commands/nexus-corpus-lock/README.md) and [docs/commands/nexus-export-bibliography/README.md](docs/commands/nexus-export-bibliography/README.md).
+
 ## Full Text Retrieval
 
 ```powershell
@@ -161,7 +184,7 @@ php artisan nexus:fetch-full-text storage/screens/all_20260520_120000.json --jso
 
 The legacy `nexus:fetch-pdfs` command remains available for older workflows, but both command names now delegate to the `nexus-scholar/core` full-text retrieval pipeline. They can store validated PDFs and supported XML/text artifacts from configured legal open-access sources such as direct run metadata URLs, Unpaywall, PMC, Europe PMC, arXiv, OpenAlex metadata PDF URLs, and Semantic Scholar metadata PDF URLs.
 
-Artifacts and `manifest.json` are written to the configured Laravel storage disk under `full-text/{run_id}` by default. Configure the disk and source settings in `.env`:
+Artifacts and `manifest.json` are written to the configured Laravel storage disk under `full-text/{run_id}` by default. See [docs/commands/nexus-fetch-full-text/README.md](docs/commands/nexus-fetch-full-text/README.md). Configure the disk and source settings in `.env`:
 
 ```powershell
 NEXUS_FULL_TEXT_DISK=public
@@ -177,6 +200,8 @@ php artisan nexus:graph storage/runs/all_20260520_120000.json --source=doi:10.10
 ```
 
 The graph command uses `nexus-scholar/core` citation-network services where available and writes graph artifacts under local storage.
+
+See [docs/commands/nexus-graph/README.md](docs/commands/nexus-graph/README.md).
 
 ## Status And Stats
 
@@ -207,7 +232,7 @@ The test suite uses fake HTTP clients and fixtures where possible. CI should not
 
 Before treating this CLI as production-ready:
 
-- Add commands for `core` export history, snowballing, lock/unlock, and job progress.
-- Add end-to-end tests for search -> screen -> full text -> graph -> export.
-- Add a locked-project smoke test that covers adjudication, comparison, export metadata, and mutation blocking.
+- Add host read commands or report views for `core` export history, full-text artifact history, and job lifecycle progress.
+- Add snowballing commands once the core snowballing workflow is ready for host use.
+- Add an end-to-end test that covers search -> screen -> lock -> adjudicate -> compare -> full text -> graph -> export.
 - Decide whether this remains a project template or becomes an installable CLI package.
