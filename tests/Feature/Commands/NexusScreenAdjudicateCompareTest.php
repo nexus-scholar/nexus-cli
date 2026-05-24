@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Commands;
 
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Nexus\Screening\Application\Port\ScreeningDecisionRepositoryPort;
 use Nexus\Screening\Application\Port\ScreeningRunRepositoryPort;
@@ -21,6 +24,7 @@ use Nexus\Shared\Port\ProjectWorkMembershipPort;
 
 afterEach(function (): void {
     File::delete(storage_path('adjudication-test.yml'));
+    Carbon::setTestNow();
 });
 
 test('screen adjudicate command records human decisions through core handler', function (): void {
@@ -129,6 +133,61 @@ test('screen compare command prints transition summary from core handler', funct
         ->expectsOutputToContain('Comparable: 2 | Agreement: 1 (50.0%) | Disagreement: 1 (50.0%)')
         ->expectsOutputToContain('exclude -> include: 1')
         ->expectsOutputToContain('Reference run: human-run');
+});
+
+test('screen compare command lists recent persisted runs for a project', function (): void {
+    $this->artisan('migrate:fresh')->run();
+    Carbon::setTestNow('2026-05-24 10:00:00');
+
+    DB::table('projects')->insert([
+        'id' => 'project-1',
+        'name' => 'TomatoMAP label efficiency',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    DB::table('screening_runs')->insert([
+        [
+            'id' => 'rules-run',
+            'project_id' => 'project-1',
+            'stage' => ScreeningStage::TITLE_ABSTRACT->value,
+            'name' => 'Deterministic screen',
+            'mode' => ScreeningRunMode::RULES->value,
+            'status' => ScreeningRunStatus::COMPLETED->value,
+            'criteria_hash' => 'criteria-hash',
+            'criteria' => json_encode(['include' => ['tomato']]),
+            'counts' => json_encode(['include' => 3, 'exclude' => 1]),
+            'created_at' => now()->subMinute(),
+            'updated_at' => now()->subMinute(),
+        ],
+        [
+            'id' => 'human-run',
+            'project_id' => 'project-1',
+            'stage' => ScreeningStage::TITLE_ABSTRACT->value,
+            'name' => 'Human adjudication',
+            'mode' => ScreeningRunMode::HUMAN->value,
+            'status' => ScreeningRunStatus::COMPLETED->value,
+            'criteria_hash' => 'criteria-hash',
+            'criteria' => json_encode(['include' => ['tomato']]),
+            'counts' => json_encode(['include' => 4, 'exclude' => 0]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ],
+    ]);
+
+    $exitCode = Artisan::call('nexus:screen-compare', [
+        '--project' => 'project-1',
+        '--list-runs' => true,
+        '--json' => true,
+    ]);
+
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())
+        ->toContain('"project_id": "project-1"')
+        ->toContain('"id": "human-run"')
+        ->toContain('"mode": "human"')
+        ->toContain('"counts_summary": "include:4 exclude:0"')
+        ->toContain('"id": "rules-run"');
 });
 
 test('screen compare command reports invalid stage values clearly', function (): void {

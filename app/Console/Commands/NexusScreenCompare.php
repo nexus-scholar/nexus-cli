@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Nexus\Laravel\Model\ScreeningRunModel;
 use Nexus\Screening\Application\UseCase\CompareScreeningRunsCommand;
 use Nexus\Screening\Application\UseCase\CompareScreeningRunsHandler;
 use Nexus\Screening\Application\UseCase\ScreeningRunComparisonResult;
@@ -18,6 +19,8 @@ class NexusScreenCompare extends Command
         {--baseline-run= : baseline screening run ID}
         {--candidate-run= : candidate screening run ID}
         {--stage= : optional stage filter}
+        {--list-runs : list recent screening runs for the project instead of comparing two runs}
+        {--limit=10 : number of runs to list with --list-runs}
         {--json : output JSON}
         {--no-rows : omit per-work rows from result}';
 
@@ -29,8 +32,12 @@ class NexusScreenCompare extends Command
         $baselineRunId = $this->stringOption('baseline-run');
         $candidateRunId = $this->stringOption('candidate-run');
 
+        if ((bool) $this->option('list-runs')) {
+            return $this->listRuns($projectId);
+        }
+
         if ($projectId === null || $baselineRunId === null || $candidateRunId === null) {
-            error('Provide --project, --baseline-run, and --candidate-run. Example: php artisan nexus:screen-compare --project=tomatomap_label_efficiency --baseline-run=rules-run-id --candidate-run=human-run-id');
+            error('Provide --project, --baseline-run, and --candidate-run. Use --list-runs to discover run IDs for a project.');
 
             return self::FAILURE;
         }
@@ -57,6 +64,16 @@ class NexusScreenCompare extends Command
 
         info('Screening comparison complete.');
         $this->line(sprintf(
+            'Project: %s | Baseline: %s (%s/%s) | Candidate: %s (%s/%s)',
+            $result->projectId,
+            $result->baselineRun['id'] ?? 'unknown',
+            $result->baselineRun['mode'] ?? 'unknown',
+            $result->baselineRun['stage'] ?? 'unknown',
+            $result->candidateRun['id'] ?? 'unknown',
+            $result->candidateRun['mode'] ?? 'unknown',
+            $result->candidateRun['stage'] ?? 'unknown',
+        ));
+        $this->line(sprintf(
             'Comparable: %d | Agreement: %d (%.1f%%) | Disagreement: %d (%.1f%%)',
             $result->comparableTotal,
             $result->agreementCount,
@@ -79,6 +96,75 @@ class NexusScreenCompare extends Command
         if ($result->referenceRunId !== null) {
             $this->line("Reference run: {$result->referenceRunId}");
         }
+
+        return self::SUCCESS;
+    }
+
+    private function listRuns(?string $projectId): int
+    {
+        if ($projectId === null) {
+            error('Provide --project when using --list-runs.');
+
+            return self::FAILURE;
+        }
+
+        try {
+            $limit = $this->intOption('limit', min: 1, max: 100);
+        } catch (\InvalidArgumentException $exception) {
+            error($exception->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $runs = ScreeningRunModel::query()
+            ->where('project_id', $projectId)
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get([
+                'id',
+                'stage',
+                'mode',
+                'status',
+                'name',
+                'criteria_hash',
+                'counts',
+                'created_at',
+                'completed_at',
+            ]);
+
+        $rows = $runs
+            ->map(fn (ScreeningRunModel $run): array => $this->runListRow($run))
+            ->values()
+            ->all();
+
+        if ((bool) $this->option('json')) {
+            $this->line(json_encode([
+                'project_id' => $projectId,
+                'limit' => $limit,
+                'runs' => $rows,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+            return self::SUCCESS;
+        }
+
+        if ($rows === []) {
+            info("No screening runs found for project {$projectId}.");
+
+            return self::SUCCESS;
+        }
+
+        $this->table(
+            ['Run ID', 'Stage', 'Mode', 'Status', 'Name', 'Counts', 'Created'],
+            array_map(static fn (array $row): array => [
+                $row['id'],
+                $row['stage'],
+                $row['mode'],
+                $row['status'],
+                $row['name'] ?? '',
+                $row['counts_summary'],
+                $row['created_at'] ?? '',
+            ], $rows),
+        );
 
         return self::SUCCESS;
     }
@@ -138,5 +224,56 @@ class NexusScreenCompare extends Command
         $value = $this->option($name);
 
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    private function intOption(string $name, int $min, int $max): int
+    {
+        $value = filter_var($this->option($name), FILTER_VALIDATE_INT);
+
+        if (! is_int($value) || $value < $min || $value > $max) {
+            throw new \InvalidArgumentException("--{$name} must be an integer between {$min} and {$max}.");
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function runListRow(ScreeningRunModel $run): array
+    {
+        $counts = is_array($run->counts) ? $run->counts : [];
+
+        return [
+            'id' => (string) $run->id,
+            'stage' => (string) $run->stage,
+            'mode' => (string) $run->mode,
+            'status' => (string) $run->status,
+            'name' => $run->name === null ? null : (string) $run->name,
+            'criteria_hash' => $run->criteria_hash === null ? null : (string) $run->criteria_hash,
+            'counts' => $counts,
+            'counts_summary' => $this->countsSummary($counts),
+            'created_at' => $run->created_at?->toISOString(),
+            'completed_at' => $run->completed_at?->toISOString(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $counts
+     */
+    private function countsSummary(array $counts): string
+    {
+        if ($counts === []) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($counts as $key => $value) {
+            if (is_scalar($value)) {
+                $parts[] = "{$key}:{$value}";
+            }
+        }
+
+        return implode(' ', $parts);
     }
 }
