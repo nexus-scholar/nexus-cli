@@ -1,6 +1,7 @@
 <?php
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -100,6 +101,55 @@ test('retrieves full text for included titles', function (string $command) {
         ->and($manifest[0]['source_alias'])->toBe('direct')
         ->and($manifest[0]['artifact_path'])->toBe($pdfPath)
         ->and(DB::table('pdf_fetches')->where('status', 'success')->count())->toBe(1);
+})->with([
+    'preferred command' => 'nexus:fetch-full-text',
+    'legacy command' => 'nexus:fetch-pdfs',
+]);
+
+test('retrieves full text with json summary output', function (string $command) {
+    $runFile = "{$this->runsDir}/all_20260506_000001.json";
+    writeJson($runFile, [[
+        'ids' => [['ns' => 'doi', 'val' => '10.1234/json']],
+        'title' => 'Tomato full text JSON summary study',
+        'authors' => [],
+        'year' => 2024,
+        'venue' => null,
+        'abstract' => 'A full-text JSON output test paper.',
+        'citedByCount' => 3,
+        'isRetracted' => false,
+        'sourceProvider' => 'test',
+        'rawData' => [
+            'direct_pdf_url' => 'https://example.org/json-paper.pdf',
+        ],
+    ]]);
+    $this->createdPaths[] = $runFile;
+    $this->createdPaths[] = $this->runsDir;
+
+    $screenFile = "{$this->screensDir}/all_20260506_000001.json";
+    writeJson($screenFile, [
+        'run_file' => 'storage/runs/all_20260506_000001.json',
+        'decisions' => [
+            ['title' => 'Tomato full text JSON summary study', 'included' => true],
+        ],
+    ]);
+    $this->createdPaths[] = $screenFile;
+    $this->createdPaths[] = $this->screensDir;
+
+    $exitCode = Artisan::call($command, [
+        'screen' => $screenFile,
+        '--json' => true,
+    ]);
+
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())
+        ->toContain('"screen_file": "storage/screens/all_20260506_000001.json"')
+        ->toContain('"run_id": "all_20260506_000001"')
+        ->toContain('"destination": "full-text/all_20260506_000001"')
+        ->toContain('"manifest_path": "full-text/all_20260506_000001/manifest.json"')
+        ->toContain('"total": 1')
+        ->toContain('"success": 1')
+        ->toContain('"failed": 0')
+        ->toContain('"skipped": 0');
 })->with([
     'preferred command' => 'nexus:fetch-full-text',
     'legacy command' => 'nexus:fetch-pdfs',

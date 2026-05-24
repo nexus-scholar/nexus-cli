@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\FullText\FullTextRetrievalReport;
 use App\FullText\ScreenedRunFullTextRetriever;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -23,7 +24,8 @@ class NexusFetchPdfs extends Command
         {--destination= : storage-disk folder, defaults to full-text/{run_id}}
         {--max-attempts=2 : max download attempts per source}
         {--max-bytes=50000000 : max artifact size in bytes}
-        {--cooldown=3600 : seconds before retrying a recently failed source URL}';
+        {--cooldown=3600 : seconds before retrying a recently failed source URL}
+        {--json : output a machine-readable retrieval summary}';
 
     /**
      * The console command description.
@@ -53,19 +55,32 @@ class NexusFetchPdfs extends Command
             return self::FAILURE;
         }
 
-        if ($report->total() === 0) {
-            warning('No included papers found in screen file.');
+        $summary = $this->summary($screenFile, $report);
+        if ((bool) $this->option('json')) {
+            $this->line(json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
             return self::SUCCESS;
         }
 
+        if ($report->total() === 0) {
+            warning('No included papers found in screen file.');
+            $this->line("Screen: {$summary['screen_file']}");
+            $this->line("Destination: {$summary['destination']}");
+            $this->line("Manifest: {$summary['manifest_path']}");
+
+            return self::SUCCESS;
+        }
+
+        $this->line("Screen: {$summary['screen_file']}");
+        $this->line("Destination: {$summary['destination']}");
         info(sprintf(
-            'Retrieved full text: %d success, %d failed, %d skipped.',
-            $report->countStatus('success'),
-            $report->countStatus('failure'),
-            $report->countStatus('skipped'),
+            'Retrieved full text: %d total, %d success, %d failed, %d skipped.',
+            $summary['total'],
+            $summary['success'],
+            $summary['failed'],
+            $summary['skipped'],
         ));
-        $this->line("Manifest: {$report->manifestPath}");
+        $this->line("Manifest: {$summary['manifest_path']}");
 
         return self::SUCCESS;
     }
@@ -135,5 +150,31 @@ class NexusFetchPdfs extends Command
         }
 
         return $value;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function summary(string $screenFile, FullTextRetrievalReport $report): array
+    {
+        return [
+            'screen_file' => $this->displayPath($screenFile),
+            'run_id' => $report->runId,
+            'destination' => $report->destination,
+            'manifest_path' => $report->manifestPath,
+            'total' => $report->total(),
+            'success' => $report->countStatus('success'),
+            'failed' => $report->countStatus('failure'),
+            'skipped' => $report->countStatus('skipped'),
+        ];
+    }
+
+    private function displayPath(string $path): string
+    {
+        $base = rtrim(base_path(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+        return Str::startsWith($path, $base)
+            ? str_replace(DIRECTORY_SEPARATOR, '/', substr($path, strlen($base)))
+            : $path;
     }
 }

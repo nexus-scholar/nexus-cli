@@ -171,20 +171,34 @@ nexus:screen-compare
   {--baseline-run= : baseline screening run ID}
   {--candidate-run= : candidate screening run ID}
   {--stage= : optional stage filter}
+  {--list-runs : list recent screening runs for the project instead of comparing two runs}
+  {--limit=10 : number of runs to list with --list-runs}
   {--json : output JSON}
   {--no-rows : omit per-work rows from result}
 ```
 
-Compares two persisted screening runs through `nexus-scholar/core` and prints agreement, disagreement, transition counts, missing rows, and optional JSON.
+Lists recent persisted runs for a project, or compares two persisted screening runs through `nexus-scholar/core` and prints agreement, disagreement, transition counts, missing rows, and optional JSON.
 
 See `docs/commands/nexus-screen-compare/README.md`.
 
 ---
 
-## nexus:fetch-pdfs  (BUILD)
+## nexus:fetch-full-text  (EXISTS)
 
-Signature: nexus:fetch-pdfs {screen? : path to screen JSON, defaults to latest}
+Signature:
 
-Fetches PDFs for included papers (OpenAlex) and saves:
-- storage/pdfs/{run_id}/{slug}.pdf
-- storage/pdfs/{run_id}/manifest.json
+```text
+nexus:fetch-full-text
+  {screen? : path to screen JSON, defaults to latest}
+  {--destination= : storage-disk folder, defaults to full-text/{run_id}}
+  {--max-attempts=2 : max download attempts per source}
+  {--max-bytes=50000000 : max artifact size in bytes}
+  {--cooldown=3600 : seconds before retrying a recently failed source URL}
+  {--json : output a machine-readable retrieval summary}
+```
+
+Retrieves legal open-access full text for included papers through `nexus-scholar/core`, writes artifacts to the configured Laravel storage disk under `full-text/{run_id}` by default, and writes `manifest.json`.
+
+`nexus:fetch-pdfs` is a backward-compatible alias with the same options and behavior.
+
+See `docs/commands/nexus-fetch-pdfs/README.md`.

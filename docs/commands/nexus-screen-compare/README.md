@@ -13,6 +13,25 @@ This command is a host wrapper over `nexus-scholar/core`'s screening run compari
 
 ## Run
 
+List recent runs first when you need the persisted run IDs:
+
+```powershell
+php artisan nexus:screen-compare `
+  --project=tomatomap_label_efficiency `
+  --list-runs
+```
+
+JSON run discovery is useful when copying IDs into a notebook or report:
+
+```powershell
+php artisan nexus:screen-compare `
+  --project=tomatomap_label_efficiency `
+  --list-runs `
+  --json
+```
+
+Then compare two runs:
+
 ```powershell
 php artisan nexus:screen-compare `
   --project=tomatomap_label_efficiency `
@@ -25,6 +44,7 @@ Output:
 
 ```text
 Screening comparison complete.
+Project: tomatomap_label_efficiency | Baseline: rules-run-id (rules/title_abstract) | Candidate: human-run-id (human/title_abstract)
 Comparable: 24 | Agreement: 21 (87.5%) | Disagreement: 3 (12.5%)
 Missing in baseline: 0 | Missing in candidate: 1
 exclude -> include: 2
@@ -44,6 +64,8 @@ php artisan nexus:screen-compare `
   --stage=title_abstract `
   --json
 ```
+
+The JSON result includes baseline and candidate run metadata, comparable totals, agreement/disagreement rates, transition counts, missing work IDs, reference run ID, and per-work rows unless `--no-rows` is passed.
 
 Omit per-work rows when only summary metrics are needed:
 
@@ -74,3 +96,11 @@ If `--stage` is omitted, core compares all decisions available in both runs. Use
 - `transition_counts` groups changes such as `exclude -> include`.
 - `missing_in_baseline` and `missing_in_candidate` identify run coverage gaps.
 - `reference_run_id` is populated when one run is human, but the comparison algorithm remains generic.
+
+## Practical Workflow
+
+1. Lock the corpus before screening/adjudication.
+2. Run deterministic, LLM, council, or human screening workflows.
+3. Discover persisted run IDs with `--list-runs`.
+4. Compare candidate runs against a human run or previous accepted baseline.
+5. Use `--json --no-rows` for compact summary artifacts, and omit `--no-rows` when you need per-work disagreement inspection.

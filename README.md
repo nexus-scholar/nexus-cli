@@ -139,6 +139,10 @@ Compare screening strategies or compare model output against human decisions:
 ```powershell
 php artisan nexus:screen-compare `
   --project=tomatomap_label_efficiency `
+  --list-runs
+
+php artisan nexus:screen-compare `
+  --project=tomatomap_label_efficiency `
   --baseline-run=rules-run-id `
   --candidate-run=human-run-id `
   --stage=title_abstract
@@ -152,6 +156,7 @@ Use `--json` for downstream reports or notebooks. See [docs/commands/nexus-scree
 php artisan nexus:fetch-full-text
 php artisan nexus:fetch-full-text storage/screens/all_20260520_120000.json
 php artisan nexus:fetch-full-text storage/screens/all_20260520_120000.json --destination=full-text/my-run
+php artisan nexus:fetch-full-text storage/screens/all_20260520_120000.json --json
 ```
 
 The legacy `nexus:fetch-pdfs` command remains available for older workflows, but both command names now delegate to the `nexus-scholar/core` full-text retrieval pipeline. They can store validated PDFs and supported XML/text artifacts from configured legal open-access sources such as direct run metadata URLs, Unpaywall, PMC, Europe PMC, arXiv, OpenAlex metadata PDF URLs, and Semantic Scholar metadata PDF URLs.
