@@ -1,204 +1,247 @@
-# Artisan Command Specifications
+# Artisan Command Index
 
-## nexus:status  (EXISTS — needs real output)
+This file is the high-level command map for the Nexus Scholar CLI host app. Detailed examples live under `docs/commands/*/README.md`.
 
-Shows live research dashboard.
+Run the live command list with:
 
-Output:
-- Dataset: labeled count, unlabeled count
-- Latest baseline result (reads storage/baseline.json if exists)
-- Current week derived from project start date in config
-- Latest run file name and paper count
-- Wiki health: page count in papers/, concepts/, synthesis/
-
-Reads from:
-- config/nexus.php
-- storage/baseline.json
-- storage/runs/latest.json
-- docs/wiki/ (counts only)
-
----
-
-## nexus:run-stats  (BUILD)
-
-Signature: nexus:run-stats {run? : path to run JSON, defaults to latest}
-
-Shows quick stats for a run JSON:
-- total count
-- counts by provider
-- counts by query_id (if present)
-
-Reads from:
-- storage/runs/latest.json (default)
-- run file path (optional argument)
-
----
-
-## nexus:search  (BUILD)
-
-Signature: nexus:search {--id= : run specific query} {--all : run all queries}
-
-Runs queries from resources/queries/thesis-queries.yml against
-all enabled providers via NexusSearcher (nexus-php).
-
-Deduplicates results. Saves:
-- storage/runs/{id}_{timestamp}.json  (per query)
-- storage/runs/all_{timestamp}.json   (global deduped master)
-- storage/runs/latest.json            (stable pointer)
-
-Displays: provider counts, raw vs dedup counts, saved file path.
-
----
-
-## nexus:ingest {file?}  (BUILD)
-
-Signature: nexus:ingest {file? : path to run JSON, defaults to latest}
-
-Reads documents from a run JSON file. For each document, outputs
-a pre-filled paper page template to docs/wiki/papers/{slug}.md
-IF the file does not already exist (never overwrites).
-
-The agent (not this command) fills in the analysis fields.
-This command only creates the scaffolded file with frontmatter
-pre-filled from the document metadata (title, year, doi, authors).
-
-Also appends an entry to docs/wiki/log.md.
-
----
-
-## nexus:wiki-init  (BUILD)
-
-Creates the docs/wiki/ folder structure and seed files if they
-do not exist:
-- docs/wiki/SCHEMA.md      (from wiki-schema.md template)
-- docs/wiki/index.md       (empty catalog)
-- docs/wiki/log.md         (empty log with header)
-- docs/wiki/papers/        (empty dir with .gitkeep)
-- docs/wiki/concepts/      (empty dir with .gitkeep)
-- docs/wiki/synthesis/     (empty dir with .gitkeep)
-
-Idempotent — safe to run multiple times.
-
----
-
-## nexus:wiki-status  (BUILD)
-
-Counts pages in each wiki section.
-Lists any papers/ pages where thesis_relevance is empty (not yet analyzed).
-Lists synthesis/ pages and their word counts.
-Flags if index.md is out of sync (page exists but not in index).
-
----
-
-## nexus:export {--format=bibtex}  (BUILD LATER)
-
-Exports all papers in docs/wiki/papers/ that have a doi field
-to the requested format (bibtex, csv, ris).
-Output: storage/exports/{format}_{timestamp}.{ext}
-
-Build this only after nexus:ingest is working.
-
----
-
-## nexus:screen  (EXISTS)
-
-Signature:
-
-```text
-nexus:screen
-  {run? : path to run JSON, defaults to latest}
-  {--criteria= : path to criteria JSON/YAML}
-  {--project= : project ID for database-backed core screening}
-  {--include=* : inclusion criterion for database-backed core screening}
-  {--exclude=* : exclusion criterion for database-backed core screening}
-  {--mode=llm : llm|council for database-backed core screening}
-  {--stage=title_abstract : screening stage for database-backed core screening}
-  {--model= : single model for database-backed core screening}
-  {--council-models= : comma-separated council model IDs}
-  {--max= : maximum persisted works to screen}
-  {--work-ids= : comma-separated internal work IDs}
-  {--query-ids= : comma-separated search query IDs}
-  {--name= : human-readable screening run name}
-  {--store-prompts : persist rendered prompts in screening_votes}
-  {--store-raw-responses : persist raw LLM responses in screening_votes}
+```powershell
+php artisan list nexus
 ```
 
-Modes:
+## Workspace Commands
+
+### `nexus:status`
+
+Status: exists.
+
+Shows local workspace status, latest run information, baseline summary when present, and wiki health counts.
+
+Typical use:
+
+```powershell
+php artisan nexus:status
+```
+
+### `nexus:wiki-init`
+
+Status: exists.
+
+Initializes the local research wiki folder structure under `docs/wiki`.
+
+Typical use:
+
+```powershell
+php artisan nexus:wiki-init
+```
+
+### `nexus:run-stats`
+
+Status: exists.
+
+Prints quick statistics for a run JSON file, or for the latest run pointer when no file is provided.
+
+Typical use:
+
+```powershell
+php artisan nexus:run-stats
+php artisan nexus:run-stats storage/runs/all_20260520_120000.json
+```
+
+## Search And Ingest
+
+### `nexus:search`
+
+Status: exists.
+
+Runs YAML-defined scholarly search plans through `nexus-scholar/core`, persists project-mode search data when `--project` is provided, and writes run JSON files under `storage/runs`.
+
+Typical use:
+
+```powershell
+php artisan nexus:search queries/tomatomap-label-efficient-instance-segmentation.yml --all --project=tomatomap_label_efficiency
+php artisan nexus:search queries/tomatomap-label-efficient-instance-segmentation.yml --id=tomatomap-core --project=tomatomap_label_efficiency
+```
+
+Outputs:
+
+- Per-query run files under `storage/runs`.
+- A global deduplicated `all_*.json` file when running all queries.
+- `storage/runs/latest.json` pointing to the latest run.
+- Project, query, work, provider, and provenance rows in the database when project mode is used.
+
+### `nexus:ingest`
+
+Status: exists.
+
+Creates local paper wiki pages from a run JSON file without overwriting existing pages.
+
+Typical use:
+
+```powershell
+php artisan nexus:ingest
+php artisan nexus:ingest storage/runs/all_20260520_120000.json
+```
+
+See `docs/commands/nexus-ingest/README.md`.
+
+## Corpus Lock And Export
+
+### `nexus:corpus-lock`
+
+Status: exists.
+
+Locks a project corpus through `nexus-scholar/core` and creates an immutable corpus snapshot. Locked projects block corpus mutation while allowing review, graph, full-text, and final export workflows over the frozen membership.
+
+Typical use:
+
+```powershell
+php artisan nexus:corpus-lock `
+  --project=tomatomap_label_efficiency `
+  --actor=reviewer-1 `
+  --reason="Final title/abstract screening corpus" `
+  --metadata=scope=tomatomap `
+  --metadata=stage=title_abstract
+```
+
+See `docs/commands/nexus-corpus-lock/README.md`.
+
+### `nexus:export-bibliography`
+
+Status: exists.
+
+Exports project bibliography through `nexus-scholar/core` and records export history with lock, snapshot, citable, and final metadata.
+
+Typical use:
+
+```powershell
+php artisan nexus:export-bibliography --project=tomatomap_label_efficiency --format=csv
+php artisan nexus:export-bibliography --project=tomatomap_label_efficiency --format=bibtex --output=exports/tomatomap-final.bib
+```
+
+See `docs/commands/nexus-export-bibliography/README.md`.
+
+## Screening
+
+### `nexus:screen`
+
+Status: exists.
+
+Supports two screening paths:
 
 - Run-file mode screens local run JSON and writes `storage/screens/{run_id}.json`.
 - Project mode delegates to `nexus-scholar/core` and persists `screening_runs`, `screening_decisions`, and `screening_votes`.
 
-See `docs/commands/nexus-screen/README.md` for LLM setup, council examples, and DB inspection commands.
+Typical project-mode use:
 
----
-
-## nexus:screen-adjudicate  (EXISTS)
-
-Signature:
-
-```text
-nexus:screen-adjudicate
-  {--project= : project ID}
-  {--actor= : reviewer/user ID}
-  {--file= : YAML/JSON adjudication file}
-  {--run= : existing or desired human screening run ID}
-  {--stage= : screening stage override}
-  {--criteria-hash= : criteria hash override}
-  {--name= : human-readable adjudication run name}
-  {--example : print an example YAML adjudication file and exit}
+```powershell
+php artisan nexus:screen `
+  --project=tomatomap_label_efficiency `
+  --include="crop image segmentation" `
+  --include="label-efficient or semi-supervised visual recognition" `
+  --exclude="medical imaging" `
+  --exclude="remote sensing only" `
+  --model=openai/gpt-4.1-mini `
+  --max=10 `
+  --name="TomatoMAP title abstract smoke"
 ```
 
-Parses a human adjudication file and delegates to `nexus-scholar/core`.
+See `docs/commands/nexus-screen/README.md`.
 
-Core owns:
-- locked-project requirement,
-- project work membership checks,
-- decision persistence,
-- run metadata,
-- latest-decision ordering.
+### `nexus:screen-adjudicate`
+
+Status: exists.
+
+Records human adjudication decisions for a locked project through `nexus-scholar/core`.
+
+Typical use:
+
+```powershell
+php artisan nexus:screen-adjudicate --example
+
+php artisan nexus:screen-adjudicate `
+  --project=tomatomap_label_efficiency `
+  --actor=reviewer-1 `
+  --file=storage/adjudication/tomatomap-human.yml
+```
 
 See `docs/commands/nexus-screen-adjudicate/README.md`.
 
----
+### `nexus:screen-compare`
 
-## nexus:screen-compare  (EXISTS)
-
-Signature:
-
-```text
-nexus:screen-compare
-  {--project= : project ID}
-  {--baseline-run= : baseline screening run ID}
-  {--candidate-run= : candidate screening run ID}
-  {--stage= : optional stage filter}
-  {--list-runs : list recent screening runs for the project instead of comparing two runs}
-  {--limit=10 : number of runs to list with --list-runs}
-  {--json : output JSON}
-  {--no-rows : omit per-work rows from result}
-```
+Status: exists.
 
 Lists recent persisted runs for a project, or compares two persisted screening runs through `nexus-scholar/core` and prints agreement, disagreement, transition counts, missing rows, and optional JSON.
 
+Typical use:
+
+```powershell
+php artisan nexus:screen-compare --project=tomatomap_label_efficiency --list-runs
+
+php artisan nexus:screen-compare `
+  --project=tomatomap_label_efficiency `
+  --baseline-run=rules-run-id `
+  --candidate-run=human-run-id `
+  --stage=title_abstract
+```
+
 See `docs/commands/nexus-screen-compare/README.md`.
 
----
+## Full Text
 
-## nexus:fetch-full-text  (EXISTS)
+### `nexus:fetch-full-text`
 
-Signature:
-
-```text
-nexus:fetch-full-text
-  {screen? : path to screen JSON, defaults to latest}
-  {--destination= : storage-disk folder, defaults to full-text/{run_id}}
-  {--max-attempts=2 : max download attempts per source}
-  {--max-bytes=50000000 : max artifact size in bytes}
-  {--cooldown=3600 : seconds before retrying a recently failed source URL}
-  {--json : output a machine-readable retrieval summary}
-```
+Status: exists.
 
 Retrieves legal open-access full text for included papers through `nexus-scholar/core`, writes artifacts to the configured Laravel storage disk under `full-text/{run_id}` by default, and writes `manifest.json`.
 
-`nexus:fetch-pdfs` is a backward-compatible alias with the same options and behavior.
+Typical use:
+
+```powershell
+php artisan nexus:fetch-full-text
+php artisan nexus:fetch-full-text storage/screens/all_20260520_120000.json
+php artisan nexus:fetch-full-text storage/screens/all_20260520_120000.json --json
+```
+
+See `docs/commands/nexus-fetch-full-text/README.md`.
+
+### `nexus:fetch-pdfs`
+
+Status: exists as a backward-compatible alias.
+
+This command has the same options and behavior as `nexus:fetch-full-text`. Prefer `nexus:fetch-full-text` in new docs and scripts.
 
 See `docs/commands/nexus-fetch-pdfs/README.md`.
+
+## Graph
+
+### `nexus:graph`
+
+Status: exists.
+
+Builds and analyzes citation, co-citation, or bibliographic-coupling graphs from run JSON relationships using `nexus-scholar/core` graph services.
+
+Typical use:
+
+```powershell
+php artisan nexus:graph
+php artisan nexus:graph storage/runs/all_20260520_120000.json --project=tomatomap_label_efficiency
+php artisan nexus:graph storage/runs/all_20260520_120000.json --type=bibliographic_coupling --dry-run
+```
+
+See `docs/commands/nexus-graph/README.md`.
+
+## Current Workflow
+
+For a real DB-backed systematic-review workflow:
+
+1. Run `nexus:search --all --project=...`.
+2. Review result stats with `nexus:run-stats`.
+3. Run project-mode `nexus:screen`.
+4. Lock the corpus with `nexus:corpus-lock` when corpus membership is ready to freeze.
+5. Record human decisions with `nexus:screen-adjudicate`.
+6. Compare runs with `nexus:screen-compare`.
+7. Retrieve legal OA artifacts with `nexus:fetch-full-text`.
+8. Build graph artifacts with `nexus:graph`.
+9. Export final/citable bibliography with `nexus:export-bibliography`.
+
+Run-file workflows remain available for lightweight local exploration, but project mode is the preferred path for citable review work.
