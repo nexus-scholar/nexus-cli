@@ -2466,16 +2466,16 @@
         },
         {
             "name": "nexus-scholar/core",
-            "version": "v0.2.0",
+            "version": "v0.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nexus-scholar/core.git",
-                "reference": "80893039f10f5305023674d3e50af96134ec0c59"
+                "reference": "b2359cee25815e55227f895c704d554265dc0c17"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nexus-scholar/core/zipball/80893039f10f5305023674d3e50af96134ec0c59",
-                "reference": "80893039f10f5305023674d3e50af96134ec0c59",
+                "url": "https://api.github.com/repos/nexus-scholar/core/zipball/b2359cee25815e55227f895c704d554265dc0c17",
+                "reference": "b2359cee25815e55227f895c704d554265dc0c17",
                 "shasum": ""
             },
             "require": {
@@ -2513,9 +2513,9 @@
             "description": "Systematic Literature Review toolkit for PHP 8.3+",
             "support": {
                 "issues": "https://github.com/nexus-scholar/core/issues",
-                "source": "https://github.com/nexus-scholar/core/tree/v0.2.0"
+                "source": "https://github.com/nexus-scholar/core/tree/v0.2.1"
             },
-            "time": "2026-05-23T20:36:27+00:00"
+            "time": "2026-05-24T01:46:00+00:00"
         },
         {
             "name": "nexus-scholar/graph-algorithms",
