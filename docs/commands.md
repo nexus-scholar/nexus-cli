@@ -120,6 +120,39 @@ php artisan nexus:export-bibliography --project=tomatomap_label_efficiency --for
 
 See `docs/commands/nexus-export-bibliography/README.md`.
 
+### `nexus:exports`
+
+Status: exists.
+
+Reads export history through `nexus-scholar/core` without direct SQL. Use it to list recent exports by project or inspect one export record by ID.
+
+Typical use:
+
+```powershell
+php artisan nexus:exports --project=tomatomap_label_efficiency --limit=10
+php artisan nexus:exports export-history-id --json
+```
+
+See `docs/commands/nexus-read-apis/README.md`.
+
+## Job Lifecycle
+
+### `nexus:jobs`
+
+Status: exists.
+
+Reads job lifecycle progress through `nexus-scholar/core`. Use `--run` for one run timeline, `--project` for recent project activity, and `--status` for the latest run status.
+
+Typical use:
+
+```powershell
+php artisan nexus:jobs --run=run-20260527-001
+php artisan nexus:jobs --run=run-20260527-001 --status
+php artisan nexus:jobs --project=tomatomap_label_efficiency --limit=25 --json
+```
+
+See `docs/commands/nexus-read-apis/README.md`.
+
 ## Screening
 
 ### `nexus:screen`
@@ -212,6 +245,21 @@ This command has the same options and behavior as `nexus:fetch-full-text`. Prefe
 
 See `docs/commands/nexus-fetch-pdfs/README.md`.
 
+### `nexus:full-text-artifacts`
+
+Status: exists.
+
+Reads full-text fetch audit records through `nexus-scholar/core` by work ID or project corpus.
+
+Typical use:
+
+```powershell
+php artisan nexus:full-text-artifacts --project=tomatomap_label_efficiency --limit=25
+php artisan nexus:full-text-artifacts --work=doi:10.5555/example --json
+```
+
+See `docs/commands/nexus-read-apis/README.md`.
+
 ## Graph
 
 ### `nexus:graph`
@@ -241,7 +289,9 @@ For a real DB-backed systematic-review workflow:
 5. Record human decisions with `nexus:screen-adjudicate`.
 6. Compare runs with `nexus:screen-compare`.
 7. Retrieve legal OA artifacts with `nexus:fetch-full-text`.
-8. Build graph artifacts with `nexus:graph`.
-9. Export final/citable bibliography with `nexus:export-bibliography`.
+8. Inspect full-text fetch history with `nexus:full-text-artifacts`.
+9. Build graph artifacts with `nexus:graph`.
+10. Export final/citable bibliography with `nexus:export-bibliography`.
+11. Inspect export history with `nexus:exports` and job progress with `nexus:jobs`.
 
 Run-file workflows remain available for lightweight local exploration, but project mode is the preferred path for citable review work.

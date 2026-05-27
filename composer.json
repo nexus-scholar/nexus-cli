@@ -15,7 +15,7 @@
         "php": "^8.4",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
-        "nexus-scholar/core": "^0.2",
+        "nexus-scholar/core": "^1.0",
         "symfony/yaml": "^8.0"
     },
     "require-dev": {

@@ -3,27 +3,28 @@
 *This file contains technical context, package quirks, and progress state to help AI agents resume development without needing full session history.*
 
 ## Architecture & Core Decisions
-- **Project Goal:** Build a CLI tool (`nexus-cli`) to manage a flat-file research wiki for a PhD thesis on tomato instance segmentation.
-- **Engine:** We are using `nexus-scholar/core:dev-master` (Hexagonal/DDD architecture) instead of the older `nexus-php`.
-- **Database:** The app uses an SQLite database strictly because `nexus-scholar/core` requires it to manage internal states (like project locks and migration tables). However, the actual deliverable of the CLI is **flat files** (`docs/wiki/` and `storage/runs/`).
+- **Project Goal:** Provide a Laravel Artisan host for Nexus Scholar systematic-review workflows, including local run files/wiki notes and DB-backed project workflows through `nexus-scholar/core`.
+- **Engine:** The app consumes `nexus-scholar/core:^0.2` during pre-1.0 stabilization. Keep host commands thin around core handlers and reader ports.
+- **Database:** SQLite is the default local store for core migrations, project locks, corpus snapshots, screening runs, full-text fetch audits, job lifecycle records, and export history.
+- **1.0 boundary:** `core` owns reusable handlers, ports, migrations, config, and package commands. This app owns product-specific CLI presentation and local workflow files.
 
-## Known Quirks & Workarounds in `nexus-scholar/core`
+## Current Core Posture
 
-### 1. The Caching Bug (`TypeError` in `LaravelSearchCache`)
-- **The Issue:** When `SearchAggregator` finishes a search, it tries to cache a complex payload containing DTOs (`['works' => [...], 'stats' => [...]]`). However, `LaravelSearchCache::serialize()` strictly expects an array of `ScholarlyWork` domain objects. This causes a fatal `TypeError` when running `nexus:search`.
-- **The Workaround:** Do **not** try to fix the package code. Instead, we have bound an anonymous `NullSearchCache` class to `Nexus\Search\Domain\Port\SearchCachePort` inside our `AppServiceProvider`. This safely bypasses caching entirely, allowing searches to complete without crashing.
-
-### 2. Author Name Retrieval
-- **The Issue:** `ScholarlyWork->authors()->all()` returns `Author` value objects.
-- **The Fix:** Do not use `$author->name`. The correct method to get the string representation is `$author->fullName()`.
+- Provider integration tests in `core` are fixture-backed and should not call live providers in CI.
+- Core exposes host reader ports for export history, job lifecycle, and full-text fetch artifacts. Use those ports instead of direct SQL from CLI commands.
+- Published provider config should not contain placeholder credentials or contact emails; hosts set real values in `.env`.
+- Dependency advisories are part of the release gate through `composer audit --format=plain`.
 
 ## Development State (May 2026)
 
-### Completed Commands
-1. `nexus:wiki-init`: Fully idempotent. Creates `docs/wiki/` folder structure and seeds `index.md`, `log.md`, and `SCHEMA.md` based on `docs/wiki-schema.md`.
-2. `nexus:status`: Reads `config/nexus.php`, calculates the current thesis week, safely checks `storage/baseline.json` and `storage/runs/latest.json`, and outputs a table showing wiki health.
-3. `nexus:search`: Wraps `SearchAcrossProvidersHandler`. Successfully parses `resources/queries/thesis-queries.yml`, queries providers concurrently, deduplicates, and saves runs to `storage/runs/{id}_{timestamp}.json` and `storage/runs/all_{timestamp}.json`. Updates `latest.json` pointer.
+### Completed Command Groups
+1. Workspace/run-file commands: `nexus:wiki-init`, `nexus:status`, `nexus:run-stats`, `nexus:ingest`.
+2. Search and screening commands: `nexus:search`, `nexus:screen`, `nexus:screen-adjudicate`, `nexus:screen-compare`.
+3. Corpus and export commands: `nexus:corpus-lock`, `nexus:export-bibliography`, `nexus:exports`.
+4. Full-text and graph commands: `nexus:fetch-full-text`, `nexus:fetch-pdfs`, `nexus:full-text-artifacts`, `nexus:graph`.
+5. Job lifecycle read command: `nexus:jobs`.
 
-### Next Up: `nexus:ingest`
-- **Goal:** Read the latest run JSON, iterate through the papers, and generate `docs/wiki/papers/{slug}.md` files using the template in `docs/wiki-schema.md`.
-- **Constraint:** Must never overwrite existing pages. Must update `docs/wiki/log.md`.
+### Next Up
+- Add snowballing commands once the core snowballing workflow is ready for host use.
+- Add an end-to-end fixture test that covers search -> screen -> lock -> adjudicate -> compare -> full text -> graph -> export.
+- Decide whether this remains a project template or becomes an installable CLI package.
