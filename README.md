@@ -17,7 +17,10 @@ This repository is currently a project-style CLI app, not a Composer library. It
 | `php artisan nexus:screen-compare` | Compare two persisted screening runs and report agreement, disagreement, and transition counts. |
 | `php artisan nexus:fetch-full-text` | Retrieve legal open-access full text for included papers through `nexus-scholar/core`. |
 | `php artisan nexus:fetch-pdfs` | Backward-compatible alias for full-text retrieval. |
+| `php artisan nexus:full-text-artifacts` | Read full-text fetch history by project corpus or work ID. |
 | `php artisan nexus:graph` | Build and analyze citation graphs from run JSON relationships. |
+| `php artisan nexus:exports` | Read export history records by project or export ID. |
+| `php artisan nexus:jobs` | Read job lifecycle records by run or project. |
 | `php artisan nexus:status` | Print local workspace status and latest run information. |
 
 ## Setup
@@ -173,6 +176,13 @@ php artisan nexus:export-bibliography `
 
 See [docs/commands/nexus-corpus-lock/README.md](docs/commands/nexus-corpus-lock/README.md) and [docs/commands/nexus-export-bibliography/README.md](docs/commands/nexus-export-bibliography/README.md).
 
+Inspect recorded export history:
+
+```powershell
+php artisan nexus:exports --project=tomatomap_label_efficiency --limit=10
+php artisan nexus:exports export-history-id --json
+```
+
 ## Full Text Retrieval
 
 ```powershell
@@ -189,6 +199,13 @@ Artifacts and `manifest.json` are written to the configured Laravel storage disk
 ```powershell
 NEXUS_FULL_TEXT_DISK=public
 NEXUS_UNPAYWALL_EMAIL=you@example.com
+```
+
+Inspect recorded full-text fetch artifacts:
+
+```powershell
+php artisan nexus:full-text-artifacts --project=tomatomap_label_efficiency
+php artisan nexus:full-text-artifacts --work=doi:10.5555/example --json
 ```
 
 ## Graph Workflow
@@ -209,6 +226,8 @@ See [docs/commands/nexus-graph/README.md](docs/commands/nexus-graph/README.md).
 php artisan nexus:status
 php artisan nexus:run-stats
 php artisan nexus:run-stats storage/runs/all_20260520_120000.json
+php artisan nexus:jobs --run=run-20260527-001 --status
+php artisan nexus:jobs --project=tomatomap_label_efficiency --limit=25
 ```
 
 ## Provider Configuration
@@ -221,6 +240,7 @@ Common providers currently handled by `core` include OpenAlex, Crossref, arXiv, 
 
 ```powershell
 composer test
+composer audit --format=plain
 composer format
 composer format:check
 composer validate --strict
@@ -232,7 +252,6 @@ The test suite uses fake HTTP clients and fixtures where possible. CI should not
 
 Before treating this CLI as production-ready:
 
-- Add host read commands or report views for `core` export history, full-text artifact history, and job lifecycle progress.
 - Add snowballing commands once the core snowballing workflow is ready for host use.
 - Add an end-to-end test that covers search -> screen -> lock -> adjudicate -> compare -> full text -> graph -> export.
 - Decide whether this remains a project template or becomes an installable CLI package.
